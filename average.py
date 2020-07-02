@@ -62,7 +62,7 @@ with pm.Model() as model:
     #############
     ## Queries ##
     #############
-    print("Probability: " + str(np.mean((22.4 < trace["average"])*(trace["average"] < 22.5))))
+    print("P(22.4 < average(x) < 22.5): " + str(np.mean((22.4 < trace["average"])*(trace["average"] < 22.5))))
     print("P(alice < 18): " + str(np.mean(trace["alice_age"] < 18)))
 
     
