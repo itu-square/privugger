@@ -21,7 +21,7 @@ def alpha(database):
 hist = []
 labels = []
 
-@settings(max_examples=2, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=4, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
 @given(st.data())
 def test_with_given(data):
     """
@@ -33,7 +33,7 @@ def test_with_given(data):
         ## Prior ##
         ###########
         # Database
-        N = 10 # number of entries in the database
+        N = 1 # number of entries in the database
         x = np.empty(N+1, dtype=object)  
 
         # Alice entry
@@ -47,9 +47,9 @@ def test_with_given(data):
         x[0] = (name_alice_database, age_alice_database)
 
         # Other users
-        age = [data.draw(i) for i in data.draw(pg.ListDist(name="Age",length=N))]
+        age = [data.draw(i) for i in data.draw(pg.FloatList(name="Age",length=N, possible_dist=[pd.Normal,pd.Triangular]))]
         # age = data.draw(pg.NormalDist(name="Age", shape=N))
-        name = [data.draw(i) for i in data.draw(pg.IntListDist(name="Name", length=N))]
+        name = [data.draw(i) for i in data.draw(pg.IntList(name="Name", length=N, possible_dist=[pd.Binomial]))]
 
         # Add users to the database
         for i in range(0, N):
@@ -81,13 +81,15 @@ def test_with_given(data):
         # #############
         # print("P(22.4 < average(x) < 22.5): " + str(np.mean((22.4 < trace["average"])*(trace["average"] < 22.5))))
         print("P(alice < 18): " + str(np.mean(trace[name_age_alice] < 18)))
-        string_to_add = ""
+        string_to_add = []
         for dist in age:
             for i, parameters in enumerate(dist[1]):
-                string_to_add += f"{parameters} "
-        normal = string_to_add.count("normal")
-        uni = string_to_add.count("Uniform")
-        labels.append(f"Age : (#Normal {normal}, #Uniform {uni})")
+                string_to_add.append(f"{parameters} ")
+        ind = set(string_to_add)
+        name = ""
+        for n in ind:
+            name += f"{n} : {string_to_add.count(n)}"
+        labels.append(n)
         hist.append(np.mean(trace[name_age_alice] < 18))
         
         # ##############
