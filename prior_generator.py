@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from typing import List, Tuple
 import random
+from sklearn.feature_selection import mutual_info_regression
 from hypothesis import given, settings, Phase, HealthCheck, strategies as st
 
 class ProbabilityDistributions:
@@ -29,7 +30,7 @@ class ProbabilityDistributions:
 class ProbabilityGenerators:
     
     @staticmethod
-    def IntList(name="Int Distribution", length=1, possible_dist=ProbabilityDistributions.PossibleInts):
+    def IntList(name, data, length=1, possible_dist=ProbabilityDistributions.PossibleInts):
         """
         Generates a list of distributions to mimic all possible int values
         
@@ -46,11 +47,13 @@ class ProbabilityGenerators:
         possible_dist: List[Int]
             - A list of ints to be chosen from ProbabilityDistributions, indicating which distributions to choose from
         """
-        f = (lambda r: ProbabilityGenerators.IntDist(r, name, possible_dist))
-        return st.lists(st.builds(f, r=st.randoms(use_true_random=True)), min_size=length, max_size=length)
+        return ProbabilityGenerators.IntDist(data=data, name=name, shape=length)
+
+        # f = (lambda r: ProbabilityGenerators.IntDist(r, name, possible_dist))
+        # return st.lists(st.f, r=st.randoms(use_true_random=True)), min_size=length, max_size=length)
 
     @staticmethod
-    def FloatList(name="", length=1, possible_dist =ProbabilityDistributions.PossibleFloats):
+    def FloatList(name, data, length=1, possible_dist=ProbabilityDistributions.PossibleFloats):
         """
         Generates a list of distributions to mimic all possible float values
         
@@ -67,11 +70,12 @@ class ProbabilityGenerators:
         possible_dist: List[Int]
             - A list of ints to be chosen from ProbabilityDistributions, indicating which distributions to choose from
         """
-        f = (lambda r: ProbabilityGenerators.FloatGenerator(name, r, possible_dist))
-        return st.lists(st.builds(f, r=st.randoms(use_true_random=True)), min_size=length, max_size=length)
+        return ProbabilityGenerators.FloatGenerator(name, data, shape=length)
+        # f = (lambda r: ProbabilityGenerators.FloatGenerator(name, r, possible_dist))
+        # return st.lists(st.f, r=st.randoms(use_true_random=True)), min_size=length, max_size=length)
 
     @staticmethod
-    def IntDist(rand=random.random(), name="Int Distribution", distri = ProbabilityDistributions.PossibleInts):
+    def IntDist(data, name="Int Distribution", distri = ProbabilityDistributions.PossibleInts, shape=1):
         """
         A method for generating a distributions to mimic int distribution
 
@@ -84,246 +88,255 @@ class ProbabilityGenerators:
         Distri : List[ProbabilityDistributions]
             A list of the desired ProbabilityDistributions to be chosen random from
         """
-        name = st.from_regex(f"^{name}$")
-        number_of_test = integers(min_value = 1, max_value=10000)
-        probability = floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
-        positive_float = floats(min_value=0.001, max_value=10000,allow_infinity=False, allow_nan=False)
-        non_negative_float = floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
-        uuids = st.uuids()
+        rand = data.draw(st.randoms(use_true_random=True))
         dist = rand.choice(distri)
-        size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
-                    .map(sorted)
-                    .filter(lambda x: x[0] < x[1]))
-        
         if dist == ProbabilityDistributions.Binomial:
-            return builds(ProbabilityGenerators.Binomial, 
-                name=name, n=number_of_test, p=probability, uuids=uuids)
+            return ProbabilityGenerators.Binomial(data=data, name=name, shape=shape)
         elif dist == ProbabilityDistributions.Bernoulli:
-            return builds(ProbabilityGenerators.Bernoulli, 
-                name=name, p=probability, uuids=uuids)
+            return ProbabilityGenerators.Bernoulli(data=data, name=name, shape=shape) 
         elif dist == ProbabilityDistributions.Geometric:
-            return builds(ProbabilityGenerators.Geometric, 
-                name=name, p=probability, uuids=uuids)
+            return ProbabilityGenerators.Geometric(data=data, name=name, shape=shape)
         elif dist == ProbabilityDistributions.BetaBinomial:
-            return builds(ProbabilityGenerators.BetaBinomial, name=name, uuids=uuids, 
-                n=number_of_test, alpha=positive_float, beta=positive_float)
+            return ProbabilityGenerators.BetaBinomial(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Poisson:
-            return builds(ProbabilityGenerators.Poisson, name=name, uuids=uuids,
-                mu=non_negative_float)
+            return ProbabilityGenerators.Poisson(name=name, data=data, shape=shape)
         else:
-            return builds(ProbabilityGenerators.DiscreteUniform, name=name, uuids=uuids,
-                size=size)
+            return ProbabilityGenerators.DiscreteUniform(name=name, data=data, shape=shape)
     
     @staticmethod
-    def FloatGenerator(name, rand=random.random(), possible_dist = ProbabilityDistributions.PossibleFloats):
+    def FloatGenerator(name, data, possible_dist = ProbabilityDistributions.PossibleFloats, shape=1):
         """
-
         Assumptions:
         Floats and Ints: In order to avoid values becoming to large in pymc3 a boundary for floats and ints has been set to [-10.000;10.000]
         Positive Floats: Setting the start value to 0.001 to ensure that checks >0 overholds.
         """
-        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
-        positive_floats = st.floats(min_value=0.001,allow_infinity=False, allow_nan=False,max_value=10000)
-        uuids = st.uuids()
-        name = st.from_regex(f"^{name}$")
-        ints = st.integers(min_value=-10000, max_value=10000)
-        size = (st.tuples(ints, ints)).map(sorted).filter(lambda x: x[0] < x[1])
-        float_size = (st.tuples(floats, floats,floats)).map(sorted).filter(lambda x: x[0] < x[1] < x[2])
-
+        rand = data.draw(st.randoms(use_true_random=True))
         dist = rand.choice(possible_dist)
         if dist == ProbabilityDistributions.Normal:
-            return builds(ProbabilityGenerators.Normal, name=name,
-                mu = floats, sigma=positive_floats, uuids=uuids)
+            return ProbabilityGenerators.Normal(data=data, name=name, shape=shape)
         elif dist == ProbabilityDistributions.Uniform:
-            return builds(ProbabilityGenerators.Uniform,
-                name=name, uuids = uuids,size=size)
+            return ProbabilityGenerators.Uniform(data=data, name=name, shape=shape)
         elif dist == ProbabilityDistributions.TruncatedNormal:
-            return builds(ProbabilityGenerators.TruncatedNormal, name=name, uuids=uuids,
-                mu=floats, sigma=positive_floats, size=size)
+            return ProbabilityGenerators.TruncatedNormal(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Beta:
-            return builds(ProbabilityGenerators.Beta, name=name, uuids=uuids,
-                alpha=positive_floats, beta=positive_floats)
+            return ProbabilityGenerators.Beta(name=name,data=data, shape=shape)
         elif dist == ProbabilityDistributions.Exponential:
-            return builds(ProbabilityGenerators.Exponential, name=name, uuids=uuids,
-                lam=positive_floats)
+            return ProbabilityGenerators.Exponential(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Laplace:
-            return builds(ProbabilityGenerators.Laplace, name=name, uuids=uuids, 
-                mu=floats,mean=positive_floats)
+            return ProbabilityGenerators.Laplace(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.StudentT:
-            return builds(ProbabilityGenerators.StudentT,name=name, uuids=uuids,
-                nu=positive_floats, mu=floats, sigma=floats, lam=positive_floats)
+            return ProbabilityGenerators.StudentT(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Cauchy:
-            return builds(ProbabilityGenerators.Cauchy, name=name, uuids=uuids, 
-                alpha=floats, beta=positive_floats)
+            return ProbabilityGenerators.Cauchy(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Gamma:
-            return builds(ProbabilityGenerators.Gamma, name=name, uuids=uuids,
-                alpha=positive_floats, beta=positive_floats)
+            return ProbabilityGenerators.Gamma(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.LogNormal:
-            return builds(ProbabilityGenerators.LogNormal, name=name, uuids=uuids,
-                mu=floats, sigma=positive_floats, tau=positive_floats)
+            return ProbabilityGenerators.LogNormal(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.ChiSquared:
-            return builds(ProbabilityGenerators.ChiSquared, name=name, uuids=uuids,
-                nu=positive_floats)
+            return ProbabilityGenerators.ChiSquared(name=name, data=data, shape=shape)
         elif dist == ProbabilityDistributions.Triangular:
-            return builds(ProbabilityGenerators.Triangular, name=name, uuids=uuids,
-                size=float_size)
+            return ProbabilityGenerators.Triangular(name=name, data=data, shape=shape)
         else:
-            return builds(ProbabilityGenerators.Logistic, name=name, uuids=uuids, 
-                mu=floats, s=positive_floats)
+            return ProbabilityGenerators.Logistic(name=name, data=data, shape=shape)
     
     # Int Distributions
     
     @staticmethod
-    def Binomial(name, n, p, uuids):
-        a = dist.Binomial(name=name+str(uuids), n=n, p=p)
+    def Binomial(data, name, shape=1):
+        ints = st.integers(min_value=1, max_value=10000)
+        probability = floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+        n = data.draw(ints)
+        p = data.draw(probability)
+        a = dist.Binomial(name=name, n=n, p=p, shape=shape)
         b = ["Binomial", n,p]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
     
     @staticmethod
-    def Bernoulli(name, p, uuids):
-        a = dist.Bernoulli(name=name+str(uuids), p=p)
+    def Bernoulli(data, name, shape=1):
+        probability = floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+        p = data.draw(probability)
+        a = dist.Bernoulli(name=name, p=p, shape=shape)
         b = ["Bernoulli", p]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
         
     @staticmethod
-    def Geometric(name, p, uuids):
-        a = dist.Geometric(name=name+str(uuids), p=p)
+    def Geometric(data, name, shape=1):
+        probability = floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+        p = data.draw(probability)
+        a = dist.Geometric(name=name, p=p, shape=shape)
         b = ["Geometric", p]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def BetaBinomial(name, uuids, n, alpha, beta):
-        a = dist.BetaBinomial(name+str(uuids), alpha=alpha, beta=beta, n=n)
+    def BetaBinomial(data, name, shape=1):
+        ints = st.integers(min_value=1, max_value=10000)
+        positive_float = floats(min_value=0.001, max_value=10000,allow_infinity=False, allow_nan=False)
+        n = data.draw(ints)
+        alpha = data.draw(positive_float)
+        beta = data.draw(positive_float)
+        a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n, shape=shape)
         b = ["BetaBinomial", n, alpha, beta]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def Poisson(name, uuids, mu):
-        a = dist.Poisson(name+str(uuids), mu=mu)
+    def Poisson(data, name, shape=1):
+        non_negativ_float = floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
+        mu = data.draw(non_negativ_float)
+        a = dist.Poisson(name, mu=mu, shape=shape)
         b = ["Poisson", mu]
-        c = name+str(uuids)
-        return (a,b,c) 
+        return (a,b) 
     
     @staticmethod
-    def DiscreteUniform(name, uuids, size):
-        a = dist.DiscreteUniform(name+str(uuids), size[0], size[1])
-        b = ["DiscreteUniform", size[0], size[1]]
-        c = name+str(uuids)
-        return (a,b,c)
+    def DiscreteUniform(data, name, shape=1):
+        size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
+                    .map(sorted)
+                    .filter(lambda x: x[0] < x[1]))
+        lower, upper = data.draw(size)
+        a = dist.DiscreteUniform(name, lower, upper, shape=shape)
+        b = ["DiscreteUniform", lower, upper]
+        return (a,b)
 
     # Float Distributions
 
     @staticmethod
-    def Normal(name, uuids, mu, sigma):
-        a = dist.Normal(name=name+str(uuids), mu=mu, sigma=sigma)
+    def Normal(data, name, shape=1):
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        mu = data.draw(floats)
+        sigma = data.draw(positive_floats)
+        a = dist.Normal(name=name, mu=mu, sigma=sigma, shape=shape)
         b = ["Normal", mu,sigma]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def Uniform(name, uuids, size):
-        a = dist.Uniform(name+str(uuids), lower=size[0], upper=size[1])
-        b = ["Uniform", size[0], size[1]]
-        c = name+str(uuids)
-        return (a,b,c)
+    def Uniform(data, name, shape=1):
+        size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
+                    .map(sorted)
+                    .filter(lambda x: x[0] < x[1]))
+        lower, upper = data.draw(size)
+        a = dist.Uniform(name, lower=lower, upper=upper, shape=shape)
+        b = ["Uniform", lower, upper]
+        return (a,b)
 
     @staticmethod
-    def TruncatedNormal(name, uuids, mu, sigma, size):
-        a = dist.TruncatedNormal(name+str(uuids), mu=mu, sigma=sigma, lower=size[0], upper=size[1])
-        b = ["TruncatedNormal", mu, sigma, size[0], size[1]]
-        c = name+str(uuids)
-        return (a,b,c)
+    def TruncatedNormal(data, name, shape=1):
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
+                    .map(sorted)
+                    .filter(lambda x: x[0] < x[1]))
+        mu = data.draw(floats)
+        sigma = data.draw(positive_floats)
+        lower, upper = data.draw(size)
+        a = dist.TruncatedNormal(name, mu=mu, sigma=sigma, lower=lower, upper=upper, shape=shape)
+        b = ["TruncatedNormal", mu, sigma, lower, upper]
+        return (a,b)
     
     @staticmethod
-    def Beta(name, uuids, alpha, beta):
-        a = dist.Beta(name+str(uuids), alpha = alpha, beta = beta)
+    def Beta(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        alpha = data.draw(positive_floats)
+        beta = data.draw(positive_floats)
+        a = dist.Beta(name, alpha=alpha, beta=beta, shape=shape)
         b = ["Beta", alpha, beta]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def Exponential(name, uuids, lam):
-        a = dist.Exponential(name+str(uuids), lam)
+    def Exponential(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        lam = data.draw(positive_floats)
+        a = dist.Exponential(name, lam, shape=shape)
         b = ["Exponential", lam]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def Laplace(name, uuids, mu, mean):
-        a = dist.Laplace(name+str(uuids), mu, mean)
-        b = ["Laplace", mu, mean]
-        c = name+str(uuids)
-        return (a,b,c)
+    def Laplace(data, name, shape=1):
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        mu = data.draw(floats)
+        bi = data.draw(positive_floats)
+        a = dist.Laplace(name, mu=mu, b=bi, shape=shape)
+        b = ["Laplace", mu, bi]
+        return (a,b)
 
     @staticmethod
-    def StudentT(name, uuids, nu, mu, sigma, lam):
-        if sigma > 0:
-            a = dist.StudentT(name+str(uuids), nu, mu, sigma)
-            b = ["StudentT", nu, mu, sigma]
-        else:
-            a = dist.StudentT(name+str(uuids), nu, mu, lam)
-            b = ["StudentT", nu, mu, lam]
-        c = name+str(uuids)
-        return (a,b,c)
+    def StudentT(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        nu = data.draw(positive_floats)
+        mu = data.draw(floats)
+        sigma = data.draw(positive_floats)
+        a = dist.StudentT(name, nu=nu, mu=mu, sigma=sigma, shape=shape)
+        b = ["StudentT", nu, mu, sigma]
+        return (a,b)
 
     @staticmethod
-    def Cauchy(name, uuids, alpha, beta):
-        a = dist.Cauchy(name+str(uuids), alpha, beta)
+    def Cauchy(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        alpha = data.draw(floats)
+        beta = data.draw(positive_floats)
+        a = dist.Cauchy(name, alpha=alpha, beta=beta, shape=shape)
         b = ["Cauchy", alpha, beta]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
     
     @staticmethod
-    def Gamma(name, uuids, alpha, beta):
-        a = dist.Gamma(name+str(uuids), alpha, beta)
+    def Gamma(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        alpha = data.draw(positive_floats)
+        beta = data.draw(positive_floats)
+        a = dist.Gamma(name, alpha, beta, shape=shape)
         b = ["Gamma", alpha, beta]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def LogNormal(name, uuids, mu, sigma, tau):
-        if sigma > 0:
-            a = dist.Lognormal(name+str(uuids), mu=mu, sigma=sigma)
-        else:
-            a = dist.Lognormal(name+str(uuids), mu=mu, tau=tau)
-        b = ["LogNormal", mu, sigma, tau]
-        c = name+str(uuids)
-        return (a,b,c)
+    def LogNormal(data, name, shape=1):
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        mu = data.draw(positive_floats)
+        sigma = data.draw(positive_floats)
+        a = dist.Lognormal(name, mu=mu, sigma=sigma, shape=shape)
+        b = ["LogNormal", mu, sigma]
+        return (a,b)
 
     @staticmethod
-    def ChiSquared(name, uuids, nu):
-        a = dist.ChiSquared(name+str(uuids), nu)
+    def ChiSquared(data, name, shape=1):
+        positive_int = integers(min_value = 1, max_value=10000)
+        nu = data.draw(positive_int)
+        a = dist.ChiSquared(name, nu, shape=shape)
         b = ["ChiSquared", nu]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
 
     @staticmethod
-    def Triangular(name, uuids, size):
-        a = dist.Triangular(name+str(uuids), lower=size[0], c=size[1], upper=size[2])
-        b = ["Triangular", size[0], size[1], size[2]]
-        c = name+str(uuids)
-        return(a,b,c)
+    def Triangular(data, name, shape=1):
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        float_size = (st.tuples(floats, floats,floats)).map(sorted).filter(lambda x: x[0] < x[1] < x[2])
+        lower, middle, upper = data.draw(float_size)
+        a = dist.Triangular(name, lower=lower, c=middle, upper=upper, shape=shape)
+        b = ["Triangular", lower, middle, upper]
+        return(a,b)
 
     @staticmethod
-    def Logistic(name, uuids, mu, s):
-        a = dist.Logistic(name+str(uuids), mu=mu, s=s)
+    def Logistic(data, name, shape=1):
+        floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-10000, max_value=10000)
+        positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10000)
+        mu = data.draw(floats)
+        s = data.draw(positive_floats)
+        a = dist.Logistic(name, mu=mu, s=s, shape=shape)
         b = ["Logistic", mu, s]
-        c = name+str(uuids)
-        return (a,b,c)
+        return (a,b)
     
     @staticmethod
-    def Analyze(*args):
+    def Analyze(*args, **kwargs):
         def inner(func):
             traces = []
-            @settings(max_examples=1, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
+            max_examples = 1 if "max_examples" not in kwargs else kwargs["max_examples"]
+            n = 2 if "N" not in kwargs else kwargs["N"]
+            samples = 100 if "num_samples" not in kwargs else kwargs["num_samples"]
+            @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
             @given(st.data())
             def helper(data):
                 with pm.Model() as model:
-                    N = 2 # Size of the database
+                    N = n # Size of the database
                     x = np.empty(N+1, dtype=object)
                     #Test subject
                     age_alice_database = pm.Uniform("alice_age", lower=0, upper=100)
@@ -335,40 +348,40 @@ class ProbabilityGenerators:
                         if isinstance(argument, list):
                             if len(argument) != 1:
                                 raise Exception("The size of the list has to contain only one element")
-                            dist, vals, name = parse(argument[0], islist=True,istuple=istuple)
-                            return (dist,vals,name)
+                            dist, info = parse(argument[0], islist=True,istuple=istuple)
+                            return (dist,info)
                         elif isinstance(argument, tuple):
-                            dist, vals, name = zip(*[parse(arg, islist=islist,istuple=True) for arg in argument])
-                            return (dist, vals, name)
+                            dist, info = zip(*[parse(arg, islist=islist,istuple=True) for arg in argument])
+                            return (dist, info)
                         elif isinstance(argument, int):
                             if islist:
-                                dist, vals, name = zip(*[data.draw(i) for i in data.draw(ProbabilityGenerators.IntList("IntList", N))])
-                                return (dist,vals,name)
+                                dist, info = ProbabilityGenerators.IntList(name="IntList", data=data, length=N)
+                                return (dist,info)
                             else:
-                                dist,vals,name = data.draw(ProbabilityGenerators.IntDist("IntDist"))
-                                return (dist,vals,name)
+                                dist,info = data.draw(ProbabilityGenerators.IntDist(data=data, name="IntDist"))
+                                return (dist,info)
                         elif isinstance(argument, float):
                             if islist:
-                                dist, vals, name = zip(*[data.draw(i) for i in data.draw(ProbabilityGenerators.FloatList("FloatList", N))])
-                                return (dist, vals, name)
+                                dist, info = ProbabilityGenerators.FloatList(name="FloatList", data=data, length=N)
+                                return (dist, info)
                             else:
-                                dist, vals, name = data.draw(ProbabilityGenerators.FloatGenerator("FloatDist", N))
-                                return (dist,vals,name)
+                                dist, info = ProbabilityGenerators.FloatGenerator(name="FloatDist", data=data, shape=1)
+                                return (dist,info)
                         else:
                             raise Exception("Type is currently not supported")
-                    dist, vals, name = zip(*[parse(x) for x in args])
-                    # print(dist)
-                    dist = zip(*dist[0])
-                    for i,d in enumerate(dist):
-                        # print(tuple([j[0] for j in d]))
-                        x[i+1] = d
-                    # print(parameters)
-                    average = pm.Deterministic("average", func(x))
+                    dist, info = zip(*[parse(x) for x in args])
+                    dist = dist[0]
+                    for i in range(0,N):
+                        x[i+1] = tuple([d[i] for d in dist])
 
-                    num_samples = 10
-                    # # prior = pm.sample_prior_predictive(num_samples)
-                    trace = pm.sample(num_samples, cores=1) 
-                    traces.append(trace)                  
+                    average = pm.Deterministic("average", func(x))
+                    num_samples = samples
+
+                    trace = pm.sample(num_samples, cores=1, step=pm.NUTS()) 
+                    output = trace["average"]
+                    alice_age = trace["alice_age"]
+                    mututal_info = mutual_info_regression([[i] for i in alice_age], output, discrete_features=False)
+                    traces.append(mututal_info)                  
             helper()
             return (lambda x=traces:x)
         return inner

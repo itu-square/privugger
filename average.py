@@ -6,6 +6,7 @@ from hypothesis import given, settings, Phase, HealthCheck, strategies as st
 from prior_generator import ProbabilityGenerators as pg
 from prior_generator import ProbabilityDistributions as pd
 from functools import reduce
+from sklearn.feature_selection import mutual_info_regression
 import logging
 logger = logging.getLogger("pymc3")
 logger.setLevel(logging.ERROR)
@@ -21,7 +22,7 @@ def alpha(database):
 hist = []
 labels = []
 
-@settings(max_examples=10, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=1, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
 @given(st.data())
 def test_with_given(data):
     """
@@ -33,7 +34,7 @@ def test_with_given(data):
         ## Prior ##
         ###########
         # Database
-        N = 10 # number of entries in the database
+        N = 20 # number of entries in the database
         x = np.empty(N+1, dtype=object)  
 
         # Alice entry
@@ -46,12 +47,12 @@ def test_with_given(data):
 
         # Other users
         # age = pm.distributions.Normal(name="Age", mu=0, sigma=0.001,shape=N)
-        age = [data.draw(i) for i in data.draw(pg.FloatList(name="Age",length=N))]
-        name = [data.draw(i) for i in data.draw(pg.IntList(name="Name", length=N))]
-
+        age,age_info = pg.Normal(data, "alice", shape=N)
+        # age = pg.FloatGenerator("Age", data=data, shape=N)
+        name,name_info = pg.IntList(name="Name", data=data, length=N)
         # Add users to the database
         for i in range(0, N):
-            x[i+1] = (name[i][0], age[i][0])
+            x[i+1] = (name[i], age[i])
 
             
         #########################
@@ -69,45 +70,16 @@ def test_with_given(data):
         ##############
         ## Sampling ##
         ##############
-        num_samples = 10
+        num_samples = 5000
         # # prior = pm.sample_prior_predictive(num_samples)
-        trace = pm.sample(num_samples, cores=1)
-
+        trace = pm.sample(num_samples, cores=1, step=pm.NUTS())
         
-        # #############
-        # ## Queries ##
-        # #############
-        output = open("output.csv", "a")
-        print("P(22.4 < average(x) < 22.5): " + str(np.mean((22.4 < trace["average"])*(trace["average"] < 22.5))))
-        print("P(alice < 18): " + str(np.mean(trace[name_age_alice] < 18)))
-        output.write(f"{N}!")
-        output.write(str(np.mean((22.4 < trace["average"])*(trace["average"] < 22.5))) + "!")
-        output.write(str(np.mean(trace[name_age_alice] < 18)) + "!")
-        par1 = "["
-        par2 = "["
-        for dist1,dist2 in zip(age,name):
-            par1 = par1 + "{"
-            par2 = par2 + "{"
-            for i, (parameters1, parameters2) in enumerate(zip(dist1[1],dist2[1])):
-                par1 = par1 + f"{parameters1},"
-                par2 = par2 + f"{parameters2},"
-            par1 = par1 + "},"
-            par2 = par2 + "},"
-        par1 = par1 + "]"
-        par2 = par2 + "]"
-        output.write(f"{par1}!{par2}")
-        output.write("\n")
+        alice_age = trace[name_age_alice]
+        output = trace["average"]
+
+        mututal_info = mutual_info_regression([[i] for i in alice_age], output, discrete_features=False)
+        outputs = open("output.csv", "a")
+        outputs.write(f"{N}!{age_info}!{name_info}!{mututal_info}")
+        print(f"Mutual entropy: {mututal_info}")
 
 test_with_given()
-# print(hist)
-# print(labels)
-
-# fig,ax = plt.subplots()
-# ax.barh(np.arange(len(hist)), hist,align="center")
-# ax.set_yticks(np.arange(len(hist)))
-# ax.set_yticklabels(labels)
-# ax.set_xlabel("p(alice < 18)")
-# ax.set_ylabel("Number of various distributions used to mimic the Database")
-# ax.set_title("Performance of difference distributions as the database")
-
-# plt.show()
