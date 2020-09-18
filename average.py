@@ -44,7 +44,7 @@ def test_with_given(data):
         x[0] = (name_alice_database, age_alice_database)
 
         # Other users
-        age,age_info = generators.FloatGenerator(name="Age", data=data, shape=N)
+        age,age_info = generators.Normal(name="Age", data=data, shape=N, ranges=(0,100))
         name = pm.DiscreteUniform("name", 0, 5, shape=N)
         # Add users to the database
         for i in range(0, N):
@@ -66,7 +66,10 @@ def test_with_given(data):
         output = trace["average"]
 
         mututal_info = mutual_info_regression([[i] for i in alice_age], output, discrete_features=False)
-        outputs = open("output.csv", "a")
-        outputs.write(f"{N}!{age_info}!{mututal_info[0]}\n")
+        normalized = mutual_info_regression([[i] for i in alice_age], alice_age, discrete_features=False)
+        print(f"mutual info before normalizing {mututal_info}")
+        mututal_info = mututal_info/normalized
+        print("###########")
         print(f"Mutual entropy: {mututal_info}")
+        print("###########")
 test_with_given()

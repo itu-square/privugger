@@ -1,10 +1,11 @@
 """
 Probability distributions generators
 """
-
+import pymc3 as pm
 import pymc3.distributions as dist
 from privugger.distributions import *
 from hypothesis import strategies as st
+import numpy as np
 
 def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     """
@@ -27,7 +28,7 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     """
     rand = data.draw(st.randoms(use_true_random=True))
     use_multiple_dist = bool(rand.getrandbits(1))
-    if use_multiple_dist and len(possible_dist) > 1:
+    if use_multiple_dist and len(possible_dist) < 0:
         dist, info = tuple(zip(*[IntGenerator(data=data, name=f"{name}{i}", shape=1) for i in range(length)]))
         return (dist, info)
     else:
@@ -298,7 +299,7 @@ def DiscreteUniform(data, name, shape=1):
 # Float Distributions
 
 
-def Normal(data, name, shape=1):
+def Normal(data, name, shape=1, ranges=(0, 100)):
     """
     Constructs a Normal distributions with RV = X ~ Normal(µ,sigma)
 
@@ -314,9 +315,14 @@ def Normal(data, name, shape=1):
         - The hypothesis data used to draw the distributions
     shape: int
         - The dimensionality of the distribution
+    range: Tuple[int] 
+        - The possible values that the PMF can mimic
     """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=100)
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
+    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
     mu = data.draw(floats)
     sigma = data.draw(positive_floats)
     a = dist.Normal(name=name, mu=mu, sigma=sigma, shape=shape)
@@ -324,7 +330,7 @@ def Normal(data, name, shape=1):
     return (a,b)
 
 
-def Uniform(data, name, shape=1):
+def Uniform(data, name, shape=1, ranges=(0,100)):
     """
     Constructs a Uniform distributions with RV = X ~ Uniform(l,u)
 
@@ -341,7 +347,10 @@ def Uniform(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    size = (st.tuples(st.integers(min_value=-100, max_value=200), st.integers(min_value=-100, max_value=200))
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    size = (st.tuples(st.integers(min_value=low, max_value=high), st.integers(min_value=low, max_value=high))
                 .map(sorted)
                 .filter(lambda x: x[0] < x[1]))
     lower, upper = data.draw(size)
@@ -350,7 +359,7 @@ def Uniform(data, name, shape=1):
     return (a,b)
 
 
-def TruncatedNormal(data, name, shape=1):
+def TruncatedNormal(data, name, shape=1, ranges=(-np.inf, np.inf)):
     """
     Constructs a TruncatedNormal distributions with RV = X ~ TruncatedNormal(mu, sigma, lower, upper)
 
@@ -367,9 +376,12 @@ def TruncatedNormal(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=200)
-    size = (st.tuples(st.integers(min_value=-100, max_value=200), st.integers(min_value=-100, max_value=200))
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
+    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
+    size = (st.tuples(st.integers(min_value=low, max_value=high), st.integers(min_value=low, max_value=high))
                 .map(sorted)
                 .filter(lambda x: x[0] < x[1]))
     mu = data.draw(floats)
@@ -405,7 +417,7 @@ def Beta(data, name, shape=1):
     return (a,b)
 
 
-def Exponential(data, name, shape=1):
+def Exponential(data, name, shape=1, ranges=(-np.inf, np.inf)):
     """
     Constructs a Exponential distributions with RV = X ~ Exponential(lambda)
 
@@ -422,14 +434,22 @@ def Exponential(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
+    low, high = ranges
+    low = low if low != -np.inf else 0
+    high = high if high != np.inf else 1000
+        
     positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=50)
     lam = data.draw(positive_floats)
     a = dist.Exponential(name, lam, shape=shape)
+    if not low:
+        shift = pm.Deterministic(name+"_shifted", a+low)
+        b = ["Exponential", lam]
+        return (a,b)
     b = ["Exponential", lam]
     return (a,b)
 
 
-def Laplace(data, name, shape=1):
+def Laplace(data, name, shape=1, ranges=(-np.inf, np.inf)):
     """
     Constructs a Laplace distributions with RV = X ~ Laplace(mu, b)
 
@@ -446,7 +466,10 @@ def Laplace(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=50)
     mu = data.draw(floats)
     bi = data.draw(positive_floats)
@@ -455,7 +478,7 @@ def Laplace(data, name, shape=1):
     return (a,b)
 
 
-def StudentT(data, name, shape=1):
+def StudentT(data, name, shape=1, ranges=(-np.inf, np.inf)):
     """
     Constructs a StudentT distributions with RV = X ~ StudentT(nu, mu, sigma)
 
@@ -472,8 +495,11 @@ def StudentT(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     nu = data.draw(positive_floats)
     mu = data.draw(floats)
     sigma = data.draw(positive_floats)
@@ -482,7 +508,7 @@ def StudentT(data, name, shape=1):
     return (a,b)
 
 
-def Cauchy(data, name, shape=1):
+def Cauchy(data, name, shape=1, ranges=(-np.inf, np.inf)):
     """
     Constructs a Cauchy distributions with RV = X ~ Cauchy(alpha, beta)
 
@@ -499,8 +525,11 @@ def Cauchy(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
+    low, high = ranges
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     alpha = data.draw(floats)
     beta = data.draw(positive_floats)
     a = dist.Cauchy(name, alpha=alpha, beta=beta, shape=shape)
