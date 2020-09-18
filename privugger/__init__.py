@@ -3,6 +3,7 @@ import numpy as np
 import pymc3 as pm
 from privugger.generators import IntGenerator, IntList, FloatGenerator, FloatList
 from sklearn.feature_selection import mutual_info_regression
+import typing
 
 """
 The data privacy debugger, PRIVUGER, is a privacy risk analysis tool.
@@ -52,42 +53,60 @@ def Analyze(*args, **kwargs):
                 
                 x[0] = (name_alice_database, age_alice_database)
                 def parse(argument, islist=False, istuple=False):
-                    if isinstance(argument, list):
-                        if len(argument) != 1:
-                            raise Exception("The size of the list has to contain only one element")
-                        dist, info = parse(argument[0], islist=True,istuple=istuple)
-                        return (dist,info)
-                    elif isinstance(argument, tuple):
-                        dist, info = zip(*[parse(arg, islist=islist,istuple=True) for arg in argument])
-                        return (dist, info)
-                    elif isinstance(argument, int):
-                        if islist:
-                            dist, info = IntList(name="IntList", data=data, length=N)
+                    try:
+                        if argument.__origin__ == list or argument.__origin__ == typing.List:
+                            dist, info = parse(argument.__args__[0], islist=True,istuple=istuple)
                             return (dist,info)
-                        else:
-                            dist,info = data.draw(IntGenerator(data=data, name="IntDist"))
-                            return (dist,info)
-                    elif isinstance(argument, float):
-                        if islist:
-                            dist, info = FloatList(name="FloatList", data=data, length=N)
+                        elif argument.__origin__ == tuple or argument.__origin__ == typing.Tuple:
+                            dist, info = zip(*[parse(arg, islist=islist,istuple=True) for arg in argument.__args__])
                             return (dist, info)
+                        elif argument == int:
+                            if islist:
+                                dist, info = IntList(name="IntList", data=data, length=N)
+                                return (dist,info)
+                            else:
+                                dist,info = data.draw(IntGenerator(data=data, name="IntDist"))
+                                return (dist,info)
+                        elif argument == float:
+                            if islist:
+                                dist, info = FloatList(name="FloatList", data=data, length=N)
+                                return (dist, info)
+                            else:
+                                dist, info = FloatGenerator(name="FloatDist", data=data, shape=1)
+                                return (dist,info)
                         else:
-                            dist, info = FloatGenerator(name="FloatDist", data=data, shape=1)
-                            return (dist,info)
-                    else:
-                        raise Exception("Type is currently not supported")
-                dist, info = zip(*[parse(x) for x in args])
-                dist = dist[0]
+                            raise Exception("Type is currently not supported")
+                    except AttributeError as e:
+                        if argument == int:
+                            if islist:
+                                dist, info = IntList(name="IntList", data=data, length=N)
+                                return (dist,info)
+                            else:
+                                dist,info = data.draw(IntGenerator(data=data, name="IntDist"))
+                                return (dist,info)
+                        elif argument == float:
+                            if islist:
+                                dist, info = FloatList(name="FloatList", data=data, length=N)
+                                return (dist, info)
+                            else:
+                                dist, info = FloatGenerator(name="FloatDist", data=data, shape=1)
+                                return (dist,info)
+                        else:
+                            raise e
+                dist, info = parse(args[0])
+                print("############")
+                print(dist)
+                print("############")
                 for i in range(0,N):
-                    x[i+1] = tuple([d[i] for d in dist])
+                    x[i+1] = (dist[0][i], dist[1][i])
 
                 average = pm.Deterministic("average", func(x))
                 num_samples = samples
-
-                trace = pm.sample(num_samples, cores=1, step=pm.NUTS()) 
+                trace = pm.sample(num_samples, cores=1, step=pm.HamiltonianMC()) 
                 output = trace["average"]
                 alice_age = trace["alice_age"]
                 mututal_info = mutual_info_regression([[i] for i in alice_age], output, discrete_features=False)
+                max_entropy = mutual_info_regression([[i] for i in alice_age], alice_age, discrete_features=False)
                 traces.append(mututal_info[0])                  
         helper()
         return (lambda x=traces:x)

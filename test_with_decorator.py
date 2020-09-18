@@ -4,10 +4,11 @@ from privugger import Analyze
 import matplotlib.pyplot as plt
 import random
 from functools import reduce
-
+from typing import * 
 import inspect
 from typing import List, Tuple
-@Analyze([(1,2.0)],N=20, max_examples=1, num_samples=1000)
+
+@Analyze(List[Tuple[int, float]], N=20, max_examples=1, num_samples=1000)
 def alpha(database):
     return (reduce((lambda i, j: i + j),
                    list(map(lambda i: i[1], database)))
@@ -16,3 +17,5 @@ def alpha(database):
 
 trac = alpha()
 print(trac)
+
+
