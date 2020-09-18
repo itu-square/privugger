@@ -1,6 +1,6 @@
 import pymc3 as pm
 from hypothesis import given, settings, HealthCheck, Phase, strategies as st
-from privugger import Analyze
+from privugger.attacker import Analyze
 import matplotlib.pyplot as plt
 import random
 from functools import reduce
@@ -17,5 +17,3 @@ def alpha(database):
 
 trac = alpha()
 print(trac)
-
-

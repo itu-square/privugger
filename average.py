@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import pymc3 as pm
 import seaborn as sns
 from hypothesis import given, settings, Phase, HealthCheck, strategies as st
-from privugger import generators
+from privugger.attacker import generators
 from functools import reduce
 from sklearn.feature_selection import mutual_info_regression
 import logging
