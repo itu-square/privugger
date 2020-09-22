@@ -127,8 +127,7 @@ class AssignToDeterministicReplacer(ProbabilisticTranslator):
     """
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            print("here")
+        if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and isinstance(node.value.args[0], ast.Name):
             target_id = node.targets[0].id
             func_name = node.value.func.id
             arg_name = node.value.args[0].id
@@ -141,9 +140,11 @@ class AssignToDeterministicReplacer(ProbabilisticTranslator):
             binary_operation = node.value.op
             return ProbabilisticTranslator.create_deterministic_bin_op__node(target_id, left, right, binary_operation)
         else:
-            print("here")
-            target_id = node.targets[0].id
-            return ProbabilisticTranslator.create_generic_assig_node(target_id)
+            #target_id = node.targets[0].id
+            #return ProbabilisticTranslator.create_generic_assig_node(target_id)
+            
+            #For now this else case needs to return the node itself
+            return node
 
 
 def load(program):
