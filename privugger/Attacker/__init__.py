@@ -1,7 +1,7 @@
 from hypothesis import settings, given, Phase, HealthCheck, strategies as st
 import numpy as np
 import pymc3 as pm
-from privugger.generators import IntGenerator, IntList, FloatGenerator, FloatList
+from privugger.attacker.generators import IntGenerator, IntList, FloatGenerator, FloatList
 from sklearn.feature_selection import mutual_info_regression
 import typing
 

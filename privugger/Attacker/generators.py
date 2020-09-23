@@ -3,7 +3,7 @@ Probability distributions generators
 """
 import pymc3 as pm
 import pymc3.distributions as dist
-from privugger.distributions import *
+from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
 
@@ -321,6 +321,7 @@ def Normal(data, name, shape=1, ranges=(0, 100)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
+
     floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
     mu = data.draw(floats)
@@ -350,10 +351,12 @@ def Uniform(data, name, shape=1, ranges=(0,100)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    size = (st.tuples(st.integers(min_value=low, max_value=high), st.integers(min_value=low, max_value=high))
+    cdf = lambda h,l,a,b: (b-a)/(h-l-2*a)
+    size = (st.tuples(st.floats(min_value=low, max_value=high), st.floats(min_value=low, max_value=high))
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1]))
+                .filter(lambda x: x[0] < x[1] and cdf(high, low, x[0], x[1]) > MINIMUM_COVERAGE(low,high)))
     lower, upper = data.draw(size)
+    return size
     a = dist.Uniform(name, lower=lower, upper=upper, shape=shape)
     b = ["Uniform", lower, upper]
     return (a,b)
