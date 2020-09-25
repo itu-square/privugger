@@ -93,12 +93,15 @@ class ProbabilisticTranslator(ast.NodeTransformer):
 
     """
 
-    def create_deterministic_func_call_from_assign(var_name, func_name, func_arg):
+    def create_deterministic_func_call_from_assign(var_name, func_name, func_args):
+            f_args = []
+            for i in range(len(func_args)):
+                f_args.append(ast.Name(id=func_args[i], ctx=ast.Load))
             return ast.Assign(
                     targets=[ast.Name(id = var_name, ctx=ast.Store())],
                     value=ast.Call(func=ast.Attribute(value=ast.Name(id='pm', ctx=ast.Load()), attr='Deterministic', ctx=ast.Load()),
                     args=[ast.Constant(var_name, kind=None), ast.Call(func=ast.Name(id=func_name, ctx=ast.Load()), 
-                    args=[ast.Name(id=func_arg, ctx=ast.Load())], keywords=[])], keywords=[], type_ignores=[])
+                    args=f_args, keywords=[])], keywords=[], type_ignores=[])
             )
 
 
@@ -125,13 +128,28 @@ class AssignToDeterministicReplacer(ProbabilisticTranslator):
     Return: The new AST 
 
     """
-
+    
     def visit_Assign(self, node):
-        if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and isinstance(node.value.args[0], ast.Name):
+        if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.value.id == 'typed'):
+            print()
+            target_id = node.targets[0].id
+            typed = node.value.func.value.id
+            func = node.value.func.attr
+            func_name = typed + "." + func
+            
+            arg_names = []
+            for i in range(len(node.value.args)):
+                arg_names.append(node.value.args[i].id)
+            return ProbabilisticTranslator.create_deterministic_func_call_from_assign(target_id, func_name, arg_names)
+
+        if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and isinstance(node.value.args[0], ast.Name)):
             target_id = node.targets[0].id
             func_name = node.value.func.id
-            arg_name = node.value.args[0].id
-            return ProbabilisticTranslator.create_deterministic_func_call_from_assign(target_id,func_name,arg_name)
+            #arg_name = node.value.args[0].id
+            arg_names = []
+            for i in range(len(node.value.args)):
+                arg_names.append(node.value.args[i].id)
+            return ProbabilisticTranslator.create_deterministic_func_call_from_assign(target_id,func_name,arg_names)
         
         if isinstance(node.value, ast.BinOp):
             target_id=node.targets[0].id
@@ -151,7 +169,7 @@ def load(program):
     
     tree = ast.parse(open(program).read())
 
-    print(ast.dump(tree))
+    #print(ast.dump(tree))
     
     new_ast = AssignToDeterministicReplacer().visit(tree)
 
@@ -177,7 +195,7 @@ def main():
 
     #new_source = AssignToDeterministicReplacer().visit(tree)
     prob_program = load(filePath)
-    return prob_program
+    print (astor.to_source(prob_program))
     #print("---------------------  Below is the new program --------------------------------")
    
     #print(astor.to_source(prob_program))
