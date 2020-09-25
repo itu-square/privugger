@@ -54,9 +54,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
     def find_return_ast(self, body):
         for i in range(len(body)):
-            print(i)
             if( isinstance(body[i], ast.Return)):
-                print(i)
                 return (body[i],i)
         return None
             
