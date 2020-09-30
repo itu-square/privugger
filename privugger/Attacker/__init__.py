@@ -40,7 +40,8 @@ def Analyze(*args, **kwargs):
         max_examples = 1 if "max_examples" not in kwargs else kwargs["max_examples"]
         n = 2 if "N" not in kwargs else kwargs["N"]
         samples = 1000 if "num_samples" not in kwargs else kwargs["num_samples"]
-        @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
+        print(func.__annotations__)
+        @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
         @given(st.data())
         def helper(data):
             with pm.Model() as model:
@@ -53,6 +54,7 @@ def Analyze(*args, **kwargs):
                 
                 x[0] = (name_alice_database, age_alice_database)
                 def parse(argument, islist=False, istuple=False):
+                    print(argument)
                     try:
                         if argument.__origin__ == list or argument.__origin__ == typing.List:
                             dist, info = parse(argument.__args__[0], islist=True,istuple=istuple)
@@ -93,7 +95,7 @@ def Analyze(*args, **kwargs):
                                 return (dist,info)
                         else:
                             raise e
-                dist, info = parse(args[0])
+                dist, info = list(zip(*[parse(i for i in func.__annotations__.values())]))
                 print("############")
                 print(dist)
                 print("############")

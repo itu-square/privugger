@@ -6,6 +6,7 @@ import pymc3.distributions as dist
 from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
+import scipy
 
 def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     """
@@ -34,7 +35,7 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     else:
         return IntGenerator(data=data, name=name, shape=length)
 
-def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS):
+def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.inf, np.inf)):
     """
     Generates a list of probabilistics distributions to mimic all possible float values
     
@@ -54,11 +55,11 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS):
         - A list of ints to be chosen from privugger.distributions, indicating which distributions to choose from
     """
     rand = data.draw(st.randoms(use_true_random=True))
-    use_same_shape = rand.choice([0,1])
+    use_same_shape = rand.choice([1])
     if use_same_shape:
-        return FloatGenerator(name, data, shape=length)
+        return FloatGenerator(name, data, possible_dist=possible_dist ,shape=length, ranges=ranges)
     else:
-        dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist) for i in range(length)]))
+        dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist, ranges=ranges) for i in range(length)]))
         return (dist, info)
 
 
@@ -96,7 +97,7 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1):
     else:
         return DiscreteUniform(name=name, data=data, shape=shape)
 
-def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1):
+def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=(-np.inf, np.inf)):
     """
     A method for generating a single distributions to represent float data
 
@@ -118,9 +119,9 @@ def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1):
     rand = data.draw(st.randoms(use_true_random=True))
     dist = rand.choice(possible_dist)
     if dist == NORMAL:
-        return Normal(data=data, name=name, shape=shape)
+        return Normal(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == UNIFORM:
-        return Uniform(data=data, name=name, shape=shape)
+        return Uniform(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == TRUNCATED_NORMAL:
         return TruncatedNormal(name=name, data=data, shape=shape)
     elif dist == BETA:
@@ -324,8 +325,11 @@ def Normal(data, name, shape=1, ranges=(0, 100)):
 
     floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
-    mu = data.draw(floats)
-    sigma = data.draw(positive_floats)
+
+    cdf = lambda mu, sigma: (1/2*scipy.special.erfc((mu-high)/(np.sqrt(2)*sigma)))-(1/2*scipy.special.erfc((mu-low)/(np.sqrt(2)*sigma)))
+    values = st.tuples(floats, positive_floats).filter(lambda x: (1/cdf(x[0],x[1])) > MINIMUM_COVERAGE(low, high))
+
+    mu, sigma = data.draw(values)
     a = dist.Normal(name=name, mu=mu, sigma=sigma, shape=shape)
     b = ["Normal", mu,sigma]
     return (a,b)
@@ -356,7 +360,6 @@ def Uniform(data, name, shape=1, ranges=(0,100)):
                 .map(sorted)
                 .filter(lambda x: x[0] < x[1] and cdf(high, low, x[0], x[1]) > MINIMUM_COVERAGE(low,high)))
     lower, upper = data.draw(size)
-    return size
     a = dist.Uniform(name, lower=lower, upper=upper, shape=shape)
     b = ["Uniform", lower, upper]
     return (a,b)
