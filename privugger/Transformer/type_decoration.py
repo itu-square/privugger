@@ -23,16 +23,24 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     
     def translate_type(self, p_type):
         if (p_type == 'float'):
-            return 'dscalar'
+            return 'fscalar'
         
         elif(p_type == 'int'):
             return 'lscalar'
         
-        elif(p_type == 'list:int'):
+        elif(p_type == 'VectorI'):
             return 'lvector'
         
-        elif(p_type == 'list:float'):
-            return 'dvector'
+        elif(p_type == 'VectorF'):
+            return 'fvector'
+
+        elif(p_type == 'MatrixI'):
+            return 'lmatrix'
+
+        elif(p_type== 'MatrixF'):
+            return 'fmatrix'
+        else:
+            print("I do not know how to translate this type")
 
     """
     Function that transforms a list of itypes and a otype from python types to theano tensor types
@@ -58,20 +66,39 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 return (body[i],i)
         return None
             
-    #Constant(value=1, kind=None)
-    #Call(func=Attribute(value=Name(id='np', ctx=Load()), attr='int64', ctx=Load()), args=[Constant(value=1, kind=None)], keywords=[])
 
     def wrap_output_type(self, out_body, out_type):
+        if((isinstance(out_body, ast.Name) or isinstance(out_body, ast.Compare))):
+            if(out_type == 'int'):
+                o_attr = 'int64'
+            elif(out_type == 'float'):
+                o_attr = 'float32'
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+                o_attr = 'array'
+            return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
+        
         if( isinstance(out_body, ast.Constant)):
             if(out_type == 'int'):
-                return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr='int64', ctx=ast.Load()), args=[out_body], keywords=[]))
+                o_attr = 'int64'
+            elif(out_type == 'float'):
+                o_attr = 'float32'
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+                o_attr = 'array'
+            return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
+        
         if( isinstance(out_body, ast.IfExp)):
             if(out_type == 'int'):
-                wrapped_body =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr='int64', ctx=ast.Load()), args=[out_body.body], keywords=[])
-                wrapped_orelse =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr='int64', ctx=ast.Load()), args=[out_body.orelse], keywords=[])
-                out_body.body = wrapped_body
-                out_body.orelse = wrapped_orelse
-                return ast.Return(out_body)
+                o_attr = 'int64'
+            elif(out_type == 'float'):
+                o_attr = 'float32'
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+                o_attr = 'array'
+            wrapped_body =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body.body], keywords=[])
+            wrapped_orelse =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body.orelse], keywords=[])
+            out_body.body = wrapped_body
+            out_body.orelse = wrapped_orelse
+            return ast.Return(out_body)
+        
         return ast.Return(out_body)
 
     """
@@ -100,8 +127,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         (return_body, index) = self.find_return_ast(node.body)
         wrapped_return_body = self.wrap_output_type(return_body.value, otype)
-        
-        node.body[i-1] = wrapped_return_body
+        node.body[index] = wrapped_return_body
         node.decorator_list = theano_decorator_list
         return node 
     """
@@ -112,17 +138,53 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     def visit_FunctionDef(self, node):
         itypes = []
         otype = None
-
-
+    
         for a in node.args.args:
-            if isinstance(a.annotation, ast.List):
-                if (a.annotation.elts[0].id == 'int'):
-                    itypes.append('list:int')
-                if (a.annotation.elts[0].id == 'float'):
-                    itypes.append('list:float')
+            if (isinstance(a.annotation, ast.List)):
+                if(a.annotation.elts[0].id == 'int'):
+                    itypes.append("VectorI")
+                if(a.annotation.elts[0].id == 'float'):
+                    itypes.append("VectorF")
+            elif(isinstance(a.annotation, ast.Subscript)):
+                if(a.annotation.value.id == 'List'):
+                    if(isinstance(a.annotation.slice.value, ast.Name)):
+                        if(a.annotation.slice.value.id == 'int'):
+                            itypes.append("VectorI")
+                        if(a.annotation.slice.value.id == 'float'):
+                            itypes.append("VectorF")
+                    #This is the list of list case
+                    elif(a.annotation.slice.value.value.id == 'List'):
+                        if(a.annotation.slice.value.slice.value.id == 'int'):
+                            itypes.append("MatrixI")
+                        elif(a.annotation.slice.value.slice.value.id == 'float'):
+                            itypes.append("MatrixF")
+                else:
+                    print("I Do not know this subscript")
             else:
                 itypes.append(a.annotation.id)
-        otype = node.returns.id
+        
+
+
+        if(isinstance(node.returns, ast.List)):
+            if((node.returns.elts[0].id) == 'int'):
+                otype = 'VectorI'
+            if((node.returns.elts[0].id) == 'float'):
+                otype = 'VectorF'
+        elif(isinstance(node.returns, ast.Subscript)):
+            if(node.returns.value.id == 'List'):
+                if(isinstance(node.returns.slice.value, ast.Name)):
+                    if(node.returns.slice.value.id == 'int'):
+                        otype = 'VectorI'
+                    elif(node.returns.slice.value.id == 'float'):
+                        otype = 'VectorF'
+                #This is the list of list case
+                elif(node.returns.slice.value.value.id == 'List'):
+                    if(node.returns.slice.value.slice.value.id == 'int'):
+                        otype = 'MatrixI'
+                    elif(node.returns.slice.value.slice.value.id == 'float'):
+                        otype = 'MatrixF'
+        else:
+            otype = node.returns.id
         return self.create_decorated_function(node, itypes, otype)
 
 
@@ -148,6 +210,8 @@ def main():
     filePath = sys.argv[1]
 
     tree =ast.parse(open(filePath).read())
+
+    #print(ast.dump(tree))
 
     new_program = FunctionTypeDecorator().visit(tree)
 

@@ -94,9 +94,13 @@ class ProbabilisticTranslator(ast.NodeTransformer):
     """
 
     def create_deterministic_func_call_from_assign(var_name, func_name, func_args):
-            f_args = []
-            for i in range(len(func_args)):
-                f_args.append(ast.Name(id=func_args[i], ctx=ast.Load))
+            if(isinstance((func_args[0]), list)):
+                f_args = [ast.List(elts=func_args[0], ctx=ast.Load())] 
+            
+            else:
+                f_args = []
+                for i in range(len(func_args)):
+                    f_args.append(ast.Name(id=func_args[i], ctx=ast.Load))
             return ast.Assign(
                     targets=[ast.Name(id = var_name, ctx=ast.Store())],
                     value=ast.Call(func=ast.Attribute(value=ast.Name(id='pm', ctx=ast.Load()), attr='Deterministic', ctx=ast.Load()),
@@ -131,15 +135,20 @@ class AssignToDeterministicReplacer(ProbabilisticTranslator):
     
     def visit_Assign(self, node):
         if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.value.id == 'typed'):
-            print()
             target_id = node.targets[0].id
             typed = node.value.func.value.id
             func = node.value.func.attr
             func_name = typed + "." + func
-            
             arg_names = []
-            for i in range(len(node.value.args)):
-                arg_names.append(node.value.args[i].id)
+            
+            if( isinstance(node.value.args[0], ast.List)):
+                arg_names.append(node.value.args[0].elts)
+
+            else:
+                for i in range(len(node.value.args)):
+                    arg_names.append(node.value.args[i].id)
+            
+
             return ProbabilisticTranslator.create_deterministic_func_call_from_assign(target_id, func_name, arg_names)
 
         if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and isinstance(node.value.args[0], ast.Name)):
