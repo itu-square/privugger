@@ -30,6 +30,12 @@ import theano.tensor as tt
 import numpy as np
 from typing import List
 
+def alpha(database: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
+    return (reduce((lambda i, j: i + j),
+                   list(map(lambda i: i[1], database)))
+            /
+            len(database))
+
 def outer(password: int) ->int:
     @theano.compile.ops.as_op(itypes=[tt.lscalar], otypes=[tt.lscalar])
     def original_pwd_checker(password: int) -> int:
@@ -38,18 +44,8 @@ def outer(password: int) ->int:
     return original_pwd_checker(password)
 # trac = outer()
 # print(trac)
-trace = simulate(outer, max_examples=2, num_samples=10000, ranges=[(0,10)])
-print(trace())
-# @settings(max_examples=1, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow,  HealthCheck.filter_too_much])
-# @given(st.data())
-# def test(data):
-#     with pm.Model() as model:
-#         prior,info = IntGenerator(data, "prior")
-#         print(prior)
-#         output = pm.Deterministic("output", outer(prior))
-#         trace = pm.sample(1000, cores=1)
-#         pm.traceplot(trace)
-#         plt.show()
-# test()
+trace = simulate(alpha, max_examples=10, num_samples=100, ranges=[(0,100),(0,100)])
+trace.plot_mutual_information()
+
 
 

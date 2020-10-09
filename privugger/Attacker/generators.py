@@ -63,7 +63,7 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.i
         return (dist, info)
 
 
-def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1):
+def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np.inf, np.inf)):
     """
     A method for generating a single probabilistic distributions to mimic int distribution
 
@@ -95,7 +95,7 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1):
     elif dist == POISSON:
         return Poisson(name=name, data=data, shape=shape)
     else:
-        return DiscreteUniform(name=name, data=data, shape=shape)
+        return DiscreteUniform(name=name, data=data, shape=shape, ranges=ranges)
 
 def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=(-np.inf, np.inf)):
     """
@@ -168,7 +168,10 @@ def Binomial(data, name, shape=1):
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     n = data.draw(ints)
     p = data.draw(probability)
-    a = dist.Binomial(name=name, n=n, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Binomial(name=name, n=n, p=p, shape=shape)
+    else:
+        a = dist.Binomial(name=name, n=n, p=p)
     b = ["Binomial", n,p]
     return (a,b)
 
@@ -192,7 +195,10 @@ def Bernoulli(data, name, shape=1):
     """
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     p = data.draw(probability)
-    a = dist.Bernoulli(name=name, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Bernoulli(name=name, p=p, shape=shape)
+    else:
+        a = dist.Bernoulli(name=name, p=p)
     b = ["Bernoulli", p]
     return (a,b)
     
@@ -216,7 +222,10 @@ def Geometric(data, name, shape=1):
     """
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     p = data.draw(probability)
-    a = dist.Geometric(name=name, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Geometric(name=name, p=p, shape=shape)
+    else:
+        a = dist.Geometric(name=name, p=p)
     b = ["Geometric", p]
     return (a,b)
 
@@ -243,7 +252,10 @@ def BetaBinomial(data, name, shape=1):
     n = data.draw(ints)
     alpha = data.draw(positive_float)
     beta = data.draw(positive_float)
-    a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n, shape=shape)
+    if shape > 1:
+        a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n, shape=shape)
+    else:
+        a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n)
     b = ["BetaBinomial", n, alpha, beta]
     return (a,b)
 
@@ -267,12 +279,15 @@ def Poisson(data, name, shape=1):
     """
     non_negativ_float = st.floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
     mu = data.draw(non_negativ_float)
-    a = dist.Poisson(name, mu=mu, shape=shape)
+    if shape > 1:
+        a = dist.Poisson(name, mu=mu, shape=shape)
+    else:
+        a = dist.Poisson(name, mu=mu)
     b = ["Poisson", mu]
     return (a,b) 
 
 
-def DiscreteUniform(data, name, shape=1):
+def DiscreteUniform(data, name, ranges=(-np.inf, np.inf), shape=1):
     """
     Constructs a DiscreteUniform distributions with RV = X ~ DiscreteUniform(l,u)
 
@@ -289,11 +304,16 @@ def DiscreteUniform(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
+    low, high = min(ranges), max(ranges)
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    cdf = lambda l,h,a,b: (b-a)/(h-l-2*a)
+    values = st.integers(min_value=low, max_value=high)
+    size = (st.tuples(values, values)
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1]))
+                .filter(lambda x: x[0] < x[1] and x[1]-x[0] > (MINIMUM_PERCANTAGE_COVERAGE/100)*(high-low)))
     lower, upper = data.draw(size)
-    a = dist.DiscreteUniform(name, lower, upper, shape=shape)
+    a = dist.DiscreteUniform(name, lower, upper)
     b = ["DiscreteUniform", lower, upper]
     return (a,b)
 
