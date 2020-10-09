@@ -3,7 +3,7 @@ Probability distributions generators
 """
 import pymc3 as pm
 import pymc3.distributions as dist
-from privugger.attacker.distributions import *
+from privugger.Attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
 import scipy
