@@ -1,7 +1,7 @@
 import ast
 import astor
 import sys
-
+import argparse
 
 
 
@@ -23,7 +23,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     
     def translate_type(self, p_type):
         if (p_type == 'float'):
-            return 'fscalar'
+            return 'dscalar'
         
         elif(p_type == 'int'):
             return 'lscalar'
@@ -32,7 +32,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             return 'lvector'
         
         elif(p_type == 'VectorF'):
-            return 'fvector'
+            return 'dvector'
 
         elif(p_type == 'MatrixI'):
             return 'lmatrix'
@@ -205,11 +205,14 @@ class TheanoImport(ast.NodeTransformer):
         return node
 
 
-def main():
+#def main(args):
+def load(path):
+    #filePath = sys.argv[1]
+    #parser = argsparse.ArgumentParser(description="Read file path")
+    #parser.add_argument("file_path", "--path", type=string, required=True)
+    #args = parser.parse_args(args)
 
-    filePath = sys.argv[1]
-
-    tree =ast.parse(open(filePath).read())
+    tree =ast.parse(open(path).read())
 
     #print(ast.dump(tree))
 
@@ -217,8 +220,14 @@ def main():
 
     new_program_with_imports = TheanoImport().visit(new_program)
 
-    print(astor.to_source(new_program_with_imports))
+    original_out = sys.stdout
 
-if __name__ == "__main__":
-    main()
+    with open('typed.py', 'w') as decorated:
+        
+        sys.stdout = decorated 
+        print(astor.to_source(new_program_with_imports))
+        sys.stdout = original_out
+
+#if __name__ == "__main__":
+ #   main(sys.argv[1])
 
