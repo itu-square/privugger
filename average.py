@@ -20,7 +20,7 @@ def alpha(database):
 
 hist = []
 labels = []
-@settings(max_examples=10, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=1, deadline=None, phases=[Phase.generate],suppress_health_check=[HealthCheck.too_slow,  HealthCheck.filter_too_much])
 @given(st.data())
 def test_with_given(data):
     """
@@ -44,7 +44,7 @@ def test_with_given(data):
         x[0] = (name_alice_database, age_alice_database)
 
         # Other users
-        age,age_info = generators.Normal(name="Age", data=data, shape=N, ranges=(0,100))
+        age,age_info = generators.FloatList(name="Age", data=data, length=N, ranges=(0,100), possible_dist=[6])
         name = pm.DiscreteUniform("name", 0, 5, shape=N)
         # Add users to the database
         for i in range(0, N):
@@ -69,7 +69,12 @@ def test_with_given(data):
         normalized = mutual_info_regression([[i] for i in alice_age], alice_age, discrete_features=False)
         print(f"mutual info before normalizing {mututal_info}")
         mututal_info = mututal_info/normalized
+        plt.plot(1, mututal_info, "x", label=f"{age_info}")
         print("###########")
         print(f"Mutual entropy: {mututal_info}")
         print("###########")
 test_with_given()
+plt.title("Mutual information test")
+plt.ylabel("Mutual information")
+plt.legend()
+# plt.show()

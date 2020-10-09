@@ -3,9 +3,10 @@ Probability distributions generators
 """
 import pymc3 as pm
 import pymc3.distributions as dist
-from privugger.distributions import *
+from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
+import scipy
 
 def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     """
@@ -34,7 +35,7 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     else:
         return IntGenerator(data=data, name=name, shape=length)
 
-def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS):
+def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.inf, np.inf)):
     """
     Generates a list of probabilistics distributions to mimic all possible float values
     
@@ -54,15 +55,15 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS):
         - A list of ints to be chosen from privugger.distributions, indicating which distributions to choose from
     """
     rand = data.draw(st.randoms(use_true_random=True))
-    use_same_shape = rand.choice([0,1])
+    use_same_shape = rand.choice([1])
     if use_same_shape:
-        return FloatGenerator(name, data, shape=length)
+        return FloatGenerator(name, data, possible_dist=possible_dist ,shape=length, ranges=ranges)
     else:
-        dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist) for i in range(length)]))
+        dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist, ranges=ranges) for i in range(length)]))
         return (dist, info)
 
 
-def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1):
+def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np.inf, np.inf)):
     """
     A method for generating a single probabilistic distributions to mimic int distribution
 
@@ -94,9 +95,9 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1):
     elif dist == POISSON:
         return Poisson(name=name, data=data, shape=shape)
     else:
-        return DiscreteUniform(name=name, data=data, shape=shape)
+        return DiscreteUniform(name=name, data=data, shape=shape, ranges=ranges)
 
-def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1):
+def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=(-np.inf, np.inf)):
     """
     A method for generating a single distributions to represent float data
 
@@ -118,9 +119,9 @@ def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1):
     rand = data.draw(st.randoms(use_true_random=True))
     dist = rand.choice(possible_dist)
     if dist == NORMAL:
-        return Normal(data=data, name=name, shape=shape)
+        return Normal(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == UNIFORM:
-        return Uniform(data=data, name=name, shape=shape)
+        return Uniform(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == TRUNCATED_NORMAL:
         return TruncatedNormal(name=name, data=data, shape=shape)
     elif dist == BETA:
@@ -167,7 +168,10 @@ def Binomial(data, name, shape=1):
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     n = data.draw(ints)
     p = data.draw(probability)
-    a = dist.Binomial(name=name, n=n, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Binomial(name=name, n=n, p=p, shape=shape)
+    else:
+        a = dist.Binomial(name=name, n=n, p=p)
     b = ["Binomial", n,p]
     return (a,b)
 
@@ -191,7 +195,10 @@ def Bernoulli(data, name, shape=1):
     """
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     p = data.draw(probability)
-    a = dist.Bernoulli(name=name, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Bernoulli(name=name, p=p, shape=shape)
+    else:
+        a = dist.Bernoulli(name=name, p=p)
     b = ["Bernoulli", p]
     return (a,b)
     
@@ -215,7 +222,10 @@ def Geometric(data, name, shape=1):
     """
     probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
     p = data.draw(probability)
-    a = dist.Geometric(name=name, p=p, shape=shape)
+    if shape > 1:
+        a = dist.Geometric(name=name, p=p, shape=shape)
+    else:
+        a = dist.Geometric(name=name, p=p)
     b = ["Geometric", p]
     return (a,b)
 
@@ -242,7 +252,10 @@ def BetaBinomial(data, name, shape=1):
     n = data.draw(ints)
     alpha = data.draw(positive_float)
     beta = data.draw(positive_float)
-    a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n, shape=shape)
+    if shape > 1:
+        a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n, shape=shape)
+    else:
+        a = dist.BetaBinomial(name, alpha=alpha, beta=beta, n=n)
     b = ["BetaBinomial", n, alpha, beta]
     return (a,b)
 
@@ -266,12 +279,15 @@ def Poisson(data, name, shape=1):
     """
     non_negativ_float = st.floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
     mu = data.draw(non_negativ_float)
-    a = dist.Poisson(name, mu=mu, shape=shape)
+    if shape > 1:
+        a = dist.Poisson(name, mu=mu, shape=shape)
+    else:
+        a = dist.Poisson(name, mu=mu)
     b = ["Poisson", mu]
     return (a,b) 
 
 
-def DiscreteUniform(data, name, shape=1):
+def DiscreteUniform(data, name, ranges=(-np.inf, np.inf), shape=1):
     """
     Constructs a DiscreteUniform distributions with RV = X ~ DiscreteUniform(l,u)
 
@@ -288,11 +304,16 @@ def DiscreteUniform(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    size = (st.tuples(st.integers(min_value=-10000, max_value=10000), st.integers(min_value=-10000, max_value=10000))
+    low, high = min(ranges), max(ranges)
+    low = low if low != -np.inf else -1000
+    high = high if high != np.inf else 1000
+    cdf = lambda l,h,a,b: (b-a)/(h-l-2*a)
+    values = st.integers(min_value=low, max_value=high)
+    size = (st.tuples(values, values)
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1]))
+                .filter(lambda x: x[0] < x[1] and x[1]-x[0] > (MINIMUM_PERCANTAGE_COVERAGE/100)*(high-low)))
     lower, upper = data.draw(size)
-    a = dist.DiscreteUniform(name, lower, upper, shape=shape)
+    a = dist.DiscreteUniform(name, lower, upper)
     b = ["DiscreteUniform", lower, upper]
     return (a,b)
 
@@ -321,10 +342,14 @@ def Normal(data, name, shape=1, ranges=(0, 100)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
+
     floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
     positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
-    mu = data.draw(floats)
-    sigma = data.draw(positive_floats)
+
+    cdf = lambda mu, sigma: (1/2*scipy.special.erfc((mu-high)/(np.sqrt(2)*sigma)))-(1/2*scipy.special.erfc((mu-low)/(np.sqrt(2)*sigma)))
+    values = st.tuples(floats, positive_floats).filter(lambda x: (1/cdf(x[0],x[1])) > MINIMUM_COVERAGE(low, high))
+
+    mu, sigma = data.draw(values)
     a = dist.Normal(name=name, mu=mu, sigma=sigma, shape=shape)
     b = ["Normal", mu,sigma]
     return (a,b)
@@ -350,9 +375,10 @@ def Uniform(data, name, shape=1, ranges=(0,100)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    size = (st.tuples(st.integers(min_value=low, max_value=high), st.integers(min_value=low, max_value=high))
+    cdf = lambda h,l,a,b: (b-a)/(h-l-2*a)
+    size = (st.tuples(st.floats(min_value=low, max_value=high), st.floats(min_value=low, max_value=high))
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1]))
+                .filter(lambda x: x[0] < x[1] and cdf(high, low, x[0], x[1]) > MINIMUM_COVERAGE(low,high)))
     lower, upper = data.draw(size)
     a = dist.Uniform(name, lower=lower, upper=upper, shape=shape)
     b = ["Uniform", lower, upper]
