@@ -5,9 +5,12 @@ import argparse
 
 
 
-
 class FunctionTypeDecorator(ast.NodeTransformer):
-    
+
+    function_name = None
+
+    def __init__(self, name):
+        self.function_name = name
 
     """
 
@@ -58,7 +61,6 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     This function will turn an output to a theano-friendly type (ex: int -> np.int64)
 
     """
-
 
     def find_return_ast(self, body):
         for i in range(len(body)):
@@ -135,7 +137,15 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
     """
 
+    
+
+
+
     def visit_FunctionDef(self, node):
+        if(isinstance(node, ast.FunctionDef)):
+            if(node.name != self.function_name):
+                return None
+        
         itypes = []
         otype = None
     
@@ -153,11 +163,16 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                         if(a.annotation.slice.value.id == 'float'):
                             itypes.append("VectorF")
                     #This is the list of list case
-                    elif(a.annotation.slice.value.value.id == 'List'):
+                    elif(a.annotation.slice.value.value.id == 'List' ):
                         if(a.annotation.slice.value.slice.value.id == 'int'):
                             itypes.append("MatrixI")
                         elif(a.annotation.slice.value.slice.value.id == 'float'):
                             itypes.append("MatrixF")
+                    elif(a.annotation.slice.value.value.id == 'Tuple'):
+                        print(a.annotation.slice.value.slice.value)
+                        print(a.annotation.slice.value.slice.value.elts[0].id)
+                        print(a.annotation.slice.value.slice.value.elts[1].id)
+
                 else:
                     print("I Do not know this subscript")
             else:
@@ -188,45 +203,83 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         return self.create_decorated_function(node, itypes, otype)
 
 
-class TheanoImport(ast.NodeTransformer):
+# class TheanoImport(ast.NodeTransformer):
     
-    """
-    This function just blindly puts imports for theano and theano.tensor at top of file
-    """
+#     """
+#     This function just blindly puts imports for theano and theano.tensor at top of file
+#     """
     
-    def visit_Module(self, node):
-        theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
-        theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
-        numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
+#     def visit_Module(self, node):
+#         theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
+#         theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
+#         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
 
-        body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import] + node.body
-        node.body = body_with_needed_imports
+#         body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import]+ node.body 
+#         node.body = body_with_needed_imports
         
-        return node
+#         return node
+
+def find_function_def_idx(body):
+    iterable_list = body.body
+    for i in range(len(iterable_list)):
+        if( isinstance(iterable_list[i], ast.FunctionDef)):
+            return (i)
+    return -1
+
+def wrap_with_imports(program):
+    theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
+    theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
+    numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
 
 
-#def main(args):
-def load(path):
-    #filePath = sys.argv[1]
-    #parser = argsparse.ArgumentParser(description="Read file path")
-    #parser.add_argument("file_path", "--path", type=string, required=True)
-    #args = parser.parse_args(args)
+    body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import]+ program.body 
+    program.body = body_with_needed_imports
 
+    return program
+
+def wrap_program_with_signature(program):
+
+    idx = find_function_def_idx(program)
+    if(idx == -1):
+        print("wrong func def index")
+        #Throw some error
+    
+    #print("index: " + str(idx))
+
+    #print(program.body)
+
+    func_name = program.body[idx].name
+    func_args = program.body[idx].args
+    func_returns = program.body[idx].returns
+    arg_identifiers = []
+    for a in func_args.args:
+        arg_identifiers.append(a.arg)
+ 
+    returns = ast.Return(value=ast.Call(args=[ast.arguments(args=arg_identifiers, defaults=[], vararg=None, kwarg=None)], func=ast.Name(id=func_name, ctx=ast.Load()), keywords=[]))
+
+
+    new_function = ast.Module(body=[ast.FunctionDef(name='method', decorator_list=[], args=func_args, body=[program.body[idx], returns ], returns=func_returns)])
+
+    return new_function
+
+
+def load(path, function):
+ 
     tree =ast.parse(open(path).read())
 
     #print(ast.dump(tree))
 
-    new_program = FunctionTypeDecorator().visit(tree)
+    new_program = FunctionTypeDecorator(function).visit(tree)
 
-    new_program_with_imports = TheanoImport().visit(new_program)
+    new_program_with_outer_function = wrap_program_with_signature(new_program)
 
-    original_out = sys.stdout
 
-    with open('typed.py', 'w') as decorated:
-        
-        sys.stdout = decorated 
-        print(astor.to_source(new_program_with_imports))
-        sys.stdout = original_out
+    new_program_with_imports = wrap_with_imports(new_program_with_outer_function)
+    #TheanoImport().visit(new_program_with_outer_function)
+
+
+    return new_program_with_imports
+
 
 #if __name__ == "__main__":
  #   main(sys.argv[1])

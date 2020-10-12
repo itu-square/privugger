@@ -9,14 +9,10 @@ from typing import *
 import inspect
 from typing import List, Tuple
 from privugger.Transformer.type_decoration import load
-import privugger.Transformer.typed as typed
+import importlib
+import astor
 
-# @Analyze(N=20, max_examples=1, num_samples=1000)
-# def alpha(database : List[Tuple[int, float]]) -> List[Tuple[int, float]]:
-#     return (reduce((lambda i, j: i + j),
-#                    list(map(lambda i: i[1], database)))
-#             /
-#             len(database))
+
 # @Analyze(N=20, max_examples=1, num_samples=1000)
 # def alpha_dp(database: List[Tuple[int, float]],param_ε: float) -> List[Tuple[int, float]]:
 #     Δalpha=100/len(database)
@@ -27,31 +23,23 @@ import privugger.Transformer.typed as typed
 #                    list(map(lambda i: i[1], database)))
 #             /
 #             len(database)) + laplace_noise
-import theano
-import theano.tensor as tt
-import numpy as np
-from typing import List
 
-load("privugger/Transformer/password-program.py")
 
-def alpha(database: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
-    return (reduce((lambda i, j: i + j),
-                   list(map(lambda i: i[1], database)))
-            /
-            len(database))
 
-def outer(password: int) ->int:
-    @theano.compile.ops.as_op(itypes=[tt.lscalar], otypes=[tt.lscalar])
-    def original_pwd_checker(password: int) -> int:
-        PWD = 1024
-        return np.int64(password == PWD)
-    return original_pwd_checker(password)
+#lift the program
+#program variable is the new AST of the transformed program
+#in the "load"-function specify the path to the file, and the function to analyse
+program = load("privugger/Transformer/password-program.py", "original_pwd_checker")
 
-def outer1(password: int) ->int:
-    return typed.original_pwd_checker(password)   
-#trac = outer()
-# print(trac)
-trace = simulate(outer1, max_examples=10, num_samples=100, ranges=[(0,100),(0,100)])
+#Write this to a file called "typed.py". This file need to exist somewhere
+with open("privugger/Transformer/typed.py", "w") as decorated_file: 
+    decorated_file.write(astor.to_source(program))
+
+#Dynamically import the moydle called typed and use the generic function "method" which wraps the transformed function
+typed = importlib.import_module("privugger.Transformer.typed")
+
+#Run the analysis
+trace = simulate(typed.method, max_examples=10, num_samples=100, ranges=[(0,100),(0,100)])
 trace.plot_mutual_information()
 
 
