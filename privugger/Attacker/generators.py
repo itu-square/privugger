@@ -27,8 +27,8 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     possible_dist: List[Int]
         - A list of ints to be chosen from Privugger.distributions, indicating which distributions to choose from.
     """
-    rand = data.draw(st.randoms(use_true_random=True))
-    use_multiple_dist = bool(rand.getrandbits(1))
+    rand = data.draw(st.randoms(use_true_random=False))
+    use_multiple_dist = rand.choice([1])
     if use_multiple_dist and len(possible_dist) < 0:
         dist, info = tuple(zip(*[IntGenerator(data=data, name=f"{name}{i}", shape=1) for i in range(length)]))
         return (dist, info)
@@ -82,7 +82,7 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np
     shape: Int
         - The dimensionality of the distribution
     """
-    rand = data.draw(st.randoms(use_true_random=True))
+    rand = data.draw(st.randoms(use_true_random=False))
     dist = rand.choice(possible_dist)
     if dist == BINOMIAL:
         return Binomial(data=data, name=name, shape=shape)

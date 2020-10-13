@@ -123,6 +123,7 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                     alice_names.append(n)
                 outputs.append(dist)
                 info.append(temp_info)
+                pos+=1
             output = pm.Deterministic("Output", function(*outputs))
             trace = pm.sample(samples, cores=1)
             traces.append((trace, alice_names, info))         

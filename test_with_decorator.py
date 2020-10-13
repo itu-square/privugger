@@ -1,6 +1,6 @@
 import pymc3 as pm
 from hypothesis import given, settings, HealthCheck, Phase, strategies as st
-from privugger.Attacker import simulate
+from privugger.Attacker import simulate, SimulationMetrics
 from privugger.Attacker.generators import IntGenerator
 import matplotlib.pyplot as plt
 import random
@@ -32,7 +32,7 @@ import theano.tensor as tt
 import numpy as np
 from typing import List
 
-load("privugger/Transformer/password-program.py")
+load("program_to_be_analysed.py")
 
 def alpha(database: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
     return (reduce((lambda i, j: i + j),
@@ -47,12 +47,16 @@ def outer(password: int) ->int:
         return np.int64(password == PWD)
     return original_pwd_checker(password)
 
-def outer1(password: int) ->int:
-    return typed.original_pwd_checker(password)   
+
+import typed
+def outer1(v: int, t:int) ->int:
+    return typed.meth(v,t)   
 #trac = outer()
 # print(trac)
-trace = simulate(outer1, max_examples=10, num_samples=100, ranges=[(0,100),(0,100)])
-trace.plot_mutual_information()
+trace = simulate(outer1, max_examples=2, num_samples=10000, ranges=[(0,100),(0,100)])
+# trace.save_to_file("")
+# SimulationMetrics
+# trace.plot_distributions()
 
 
 
