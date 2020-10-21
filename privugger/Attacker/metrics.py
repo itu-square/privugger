@@ -10,6 +10,7 @@ class SimulationMetrics:
             self.traces = traces
         else:
             self.traces = self.load_from_file(path)
+        self.I = []
     
     def __str__(self):
         return self.traces.__str__()
@@ -18,13 +19,13 @@ class SimulationMetrics:
         with open(location, "rb") as file:
             return pickle.load(file)
 
-    def plot_mutual_information(self):
+    def plot_mutual_information(self, figsize=(16,8)):
         """
         Plots the mutual information as a graph for each distribution
         """
         I = self.mutual_information()
         size = len(I) if len(I) > 1 else 2
-        _, ax = plt.subplots(size, 1)
+        _, ax = plt.subplots(size, 1,figsize=figsize)
         for pos, (axs, values) in enumerate(zip(ax.flatten(), I)):
             x = 0
             items = values.items()
@@ -38,16 +39,18 @@ class SimulationMetrics:
                 x += 1
             axs.set_title(f"Mutual information for parameter {pos}")
             axs.set_ylabel(f"Mutual Information")
-            axs.set_ylim(0,1.2)
             axs.set_xlabel(f"Distributions")
             axs.set_xticks(range(len(labels)))
             axs.set_xticklabels(labels, fontsize=12)
             pos += 1
         plt.tight_layout()
         plt.show()
-            
+
+    def highest_leakage(self):
+        ...
+
     def save_to_file(self, location):
-        with open(location+"metrics.priv", "wb") as file:
+        with open(location+"metrics2.priv", "wb") as file:
             pickle.dump(self.traces, file)
     
     def plot_distributions(self):
@@ -67,15 +70,23 @@ class SimulationMetrics:
             for trace, names, info in self.traces:
                 discrete = ("int" in str(names[i]))
                 alice = trace[names[i]]
-                output = trace["Output"]
+                try:
+                    output = trace["Output"]
+                except:
+                    print(names[i])
+                    pos = int(str(names[i]).split("_")[-1])
+                    if pos < 10:
+                        output = trace[f"Output_{pos}"]
+                    else:
+                        continue
                 I_ao = mutual_info_regression([[j] for j in alice], output, discrete_features=discrete)[0]
-                I_aa = mutual_info_regression([[j] for j in alice], alice, discrete_features=discrete)[0]
                 while (len(info) == 1):
                     info = info[0] # Used to unwrap the inner information in case of subtypes such as List[List[Tuple[...]]]
                 if isinstance(info, tuple) or (isinstance(info, list) and isinstance(info[0], list)):
                     info = info[i]
                 if info[0] in mutual_information[i]:
-                    mutual_information[i][info[0]].append((I_ao/I_aa, info))
+                    mutual_information[i][info[0]].append((I_ao,info))
                 else:
-                    mutual_information[i][info[0]] = [(I_ao/I_aa, info)]
+                    mutual_information[i][info[0]] = [(I_ao, info)]
+        self.I = mutual_information
         return mutual_information

@@ -8,7 +8,7 @@ from hypothesis import strategies as st
 import numpy as np
 import scipy
 
-def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
+def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS, ranges=(0, np.inf)):
     """
     Generates a list of probabilistics distributions to mimic all possible int values
     
@@ -27,13 +27,13 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     possible_dist: List[Int]
         - A list of ints to be chosen from Privugger.distributions, indicating which distributions to choose from.
     """
-    rand = data.draw(st.randoms(use_true_random=False))
-    use_multiple_dist = rand.choice([1])
+    rand = data.draw(st.randoms(use_true_random=True))
+    use_multiple_dist = rand.choice([0])
     if use_multiple_dist and len(possible_dist) < 0:
         dist, info = tuple(zip(*[IntGenerator(data=data, name=f"{name}{i}", shape=1) for i in range(length)]))
         return (dist, info)
     else:
-        return IntGenerator(data=data, name=name, shape=length)
+        return IntGenerator(data=data, name=name, shape=length, ranges=ranges)
 
 def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.inf, np.inf)):
     """
@@ -57,13 +57,13 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.i
     rand = data.draw(st.randoms(use_true_random=True))
     use_same_shape = rand.choice([1])
     if use_same_shape:
-        return FloatGenerator(name, data, possible_dist=possible_dist ,shape=length, ranges=ranges)
+        return FloatGenerator(name, data, possible_dist=[TRUNCATED_NORMAL], shape=length, ranges=ranges)
     else:
         dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist, ranges=ranges) for i in range(length)]))
         return (dist, info)
 
 
-def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np.inf, np.inf)):
+def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(0, np.inf)):
     """
     A method for generating a single probabilistic distributions to mimic int distribution
 
@@ -82,20 +82,26 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np
     shape: Int
         - The dimensionality of the distribution
     """
-    rand = data.draw(st.randoms(use_true_random=False))
+    if ranges[0] < 0 or ranges[0] >= ranges[1]:
+        raise ValueError("The ranges has to be greater than or equal to 0 and in increasing order. E.g. (0,100)")
+    rand = data.draw(st.randoms(use_true_random=True))
+    if ranges[1] > 1 and BERNOULLI in possible_dist:
+        possible_dist.remove(BERNOULLI)
     dist = rand.choice(possible_dist)
     if dist == BINOMIAL:
-        return Binomial(data=data, name=name, shape=shape)
+        return Binomial(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == BERNOULLI:
-        return Bernoulli(data=data, name=name, shape=shape) 
+        return Bernoulli(data=data, name=name, shape=shape, ranges=ranges) 
     elif dist == GEOMETRIC:
-        return Geometric(data=data, name=name, shape=shape)
+        return Geometric(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == BETA_BINOMIAL:
-        return BetaBinomial(name=name, data=data, shape=shape)
+        return BetaBinomial(name=name, data=data, shape=shape, ranges=ranges)
     elif dist == POISSON:
-        return Poisson(name=name, data=data, shape=shape)
-    else:
+        return Poisson(name=name, data=data, shape=shape, ranges=ranges)
+    elif dist == DISCRETE_UNIFORM:
         return DiscreteUniform(name=name, data=data, shape=shape, ranges=ranges)
+    else:
+        raise ValueError("The possible distribution is not supported for Int Generators")
 
 def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=(-np.inf, np.inf)):
     """
@@ -147,7 +153,7 @@ def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=
 
 # Int Distributions
 
-def Binomial(data, name, shape=1):
+def Binomial(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a binomial distributions with RV = X ~ Binomial(n,p)
 
@@ -164,10 +170,11 @@ def Binomial(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    ints = st.integers(min_value=1, max_value=10000)
-    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
-    n = data.draw(ints)
-    p = data.draw(probability)
+    l,h = ranges
+    mean = lambda n,p: n*p
+    ints = st.integers(min_value=l, max_value=10000)
+    probability = st.floats(min_value=0.001, max_value=0.9999, allow_infinity=False, allow_nan=False)
+    n,p = data.draw(st.tuples(ints,probability).map(sorted).filter(lambda x: l <= mean(x[0],x[1]) <= h))
     if shape > 1:
         a = dist.Binomial(name=name, n=n, p=p, shape=shape)
     else:
@@ -176,7 +183,7 @@ def Binomial(data, name, shape=1):
     return (a,b)
 
 
-def Bernoulli(data, name, shape=1):
+def Bernoulli(data, name, shape=1, ranges=(0,1)):
     """
     Constructs a bernoulli distributions with RV = X ~ Bernoulli(p)
 
@@ -203,7 +210,7 @@ def Bernoulli(data, name, shape=1):
     return (a,b)
     
 
-def Geometric(data, name, shape=1):
+def Geometric(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a geometric distributions with RV = X ~ Geometric(p)
 
@@ -220,7 +227,9 @@ def Geometric(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    mean = lambda p: 1/p
+    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False).filter(lambda x: l <= mean(x) <= h)
     p = data.draw(probability)
     if shape > 1:
         a = dist.Geometric(name=name, p=p, shape=shape)
@@ -230,7 +239,7 @@ def Geometric(data, name, shape=1):
     return (a,b)
 
 
-def BetaBinomial(data, name, shape=1):
+def BetaBinomial(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a BetaBinomial distributions with RV = X ~ BetaBinomial(n, a, ß)
 
@@ -247,8 +256,11 @@ def BetaBinomial(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    ints = st.integers(min_value=1, max_value=10000)
-    positive_float = st.floats(min_value=0.001, max_value=10000,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    mean = lambda n,a,b: (n*a)/(a+b)
+    ints = st.integers(min_value=l, max_value=10000)
+    positive_float = st.floats(min_value=0.1, max_value=10000,allow_infinity=False, allow_nan=False)
+    tuples = st.tuples(ints,positive_float,positive_float).map(sorted).filter(lambda x: l <= mean(x[0],x[1],x[2]) <= h)
     n = data.draw(ints)
     alpha = data.draw(positive_float)
     beta = data.draw(positive_float)
@@ -260,7 +272,7 @@ def BetaBinomial(data, name, shape=1):
     return (a,b)
 
 
-def Poisson(data, name, shape=1):
+def Poisson(data, name, shape=1, ranges=(0, np.inf)):
     """
     Constructs a Poisson distributions with RV = X ~ Poisson(µ)
 
@@ -277,7 +289,8 @@ def Poisson(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    non_negativ_float = st.floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    non_negativ_float = st.floats(min_value=l, max_value=10000,allow_infinity=False, allow_nan=False).filter(lambda x: l <= x <= h)
     mu = data.draw(non_negativ_float)
     if shape > 1:
         a = dist.Poisson(name, mu=mu, shape=shape)
@@ -318,8 +331,6 @@ def DiscreteUniform(data, name, ranges=(-np.inf, np.inf), shape=1):
     return (a,b)
 
 # Float Distributions
-
-
 def Normal(data, name, shape=1, ranges=(0, 100)):
     """
     Constructs a Normal distributions with RV = X ~ Normal(µ,sigma)

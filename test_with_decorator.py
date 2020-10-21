@@ -40,20 +40,22 @@ def alpha(database: List[Tuple[int, float]]) -> List[Tuple[int, float]]:
             /
             len(database))
 
-def outer(password: int) ->int:
-    @theano.compile.ops.as_op(itypes=[tt.lscalar], otypes=[tt.lscalar])
-    def original_pwd_checker(password: int) -> int:
-        PWD = 1024
-        return np.int64(password == PWD)
-    return original_pwd_checker(password)
+# def outer(password: int) ->int:
+#     @theano.compile.ops.as_op(itypes=[tt.lscalar], otypes=[tt.lscalar])
+#     def original_pwd_checker(password: int) -> int:
+#         PWD = 1024
+#         return np.int64(password == PWD)
+#     return original_pwd_checker(password)
 
 
 import typed
-def outer1(v: int, t:int) ->int:
-    return typed.meth(v,t)   
+def outer1(a : int, b : int) -> int:
+    return typed.meth(a,b)
 #trac = outer()
 # print(trac)
-trace = simulate(outer1, max_examples=2, num_samples=10000, ranges=[(0,100),(0,100)])
+trace = simulate(alpha, max_examples=1, num_samples=100, ranges=[(0,1_000_000),(0,100)], logging=False)
+# trace = SimulationMetrics(path="metrics2.priv")
+trace.plot_mutual_information()
 # trace.save_to_file("")
 # SimulationMetrics
 # trace.plot_distributions()
