@@ -42,8 +42,15 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
         elif(p_type== 'MatrixF'):
             return 'fmatrix'
+
+        elif(p_type=='MatrixD'):
+            return 'dmatrix'
+
+        elif(p_type=='ListTupleintfloat'):
+            return 'listtuplesintfloat'
+        
         else:
-            print("I do not know how to translate this type")
+            raise TypeError("Cannot translate type to any theano type")
 
     """
     Function that transforms a list of itypes and a otype from python types to theano tensor types
@@ -75,7 +82,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 o_attr = 'int64'
             elif(out_type == 'float'):
                 o_attr = 'float32'
-            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD'):
                 o_attr = 'array'
             return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
         
@@ -84,7 +91,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 o_attr = 'int64'
             elif(out_type == 'float'):
                 o_attr = 'float32'
-            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD'):
                 o_attr = 'array'
             return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
         
@@ -93,7 +100,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 o_attr = 'int64'
             elif(out_type == 'float'):
                 o_attr = 'float32'
-            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI'):
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD'):
                 o_attr = 'array'
             wrapped_body =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body.body], keywords=[])
             wrapped_orelse =  ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body.orelse], keywords=[])
@@ -117,8 +124,12 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         ielts = []
         oelts = []
         for i in range(number_of_itypes):
-           attr = ast.Attribute(value=ast.Name(id='tt', ctx=ast.Load()), attr=theano_itypes[i], ctx=ast.Load())
-           ielts.append(attr) 
+           if(theano_itypes[i] == "listtuplesintfloat"):
+               attr = ast.Name(id=theano_itypes[i], ctx=ast.Load())
+               ielts.append(attr)
+           else:
+               attr = ast.Attribute(value=ast.Name(id='tt', ctx=ast.Load()), attr=theano_itypes[i], ctx=ast.Load())
+               ielts.append(attr) 
         
         oelts.append(ast.Attribute(value=ast.Name(id='tt', ctx=ast.Load()), attr=theano_otype, ctx=ast.Load()))
         
@@ -136,9 +147,30 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     The main traversal function that visits all the FunctionDef nodes and returns a decorated FunctionDef
 
     """
-
     
+    #def process_subscript(subscript):
 
+
+
+    def get_next_annotation_rec(self, arg, annotation):
+        
+        if(isinstance(arg, ast.List)):
+            return self.get_next_annotation_rec(arg.elts[0], annotation + "List") #annotation.elts[0].id
+
+        if(isinstance(arg, ast.Tuple)):
+            if(((arg.elts[0].id == 'int') ) and ((arg.elts[1].id == 'float'))):
+                return annotation + "intfloat"
+            else:
+                raise TypeError("Only support for Tuples(int, float) for now")
+        
+        if(isinstance(arg, ast.Subscript)):
+
+           return self.get_next_annotation_rec(arg.slice.value, annotation + str(arg.value.id))
+        
+
+        else:
+            return annotation + str(arg.id)
+            
 
 
     def visit_FunctionDef(self, node):
@@ -150,35 +182,66 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         otype = None
     
         for a in node.args.args:
-            if (isinstance(a.annotation, ast.List)):
-                if(a.annotation.elts[0].id == 'int'):
-                    itypes.append("VectorI")
-                if(a.annotation.elts[0].id == 'float'):
-                    itypes.append("VectorF")
-            elif(isinstance(a.annotation, ast.Subscript)):
-                if(a.annotation.value.id == 'List'):
-                    if(isinstance(a.annotation.slice.value, ast.Name)):
-                        if(a.annotation.slice.value.id == 'int'):
-                            itypes.append("VectorI")
-                        if(a.annotation.slice.value.id == 'float'):
-                            itypes.append("VectorF")
-                    #This is the list of list case
-                    elif(a.annotation.slice.value.value.id == 'List' ):
-                        if(a.annotation.slice.value.slice.value.id == 'int'):
-                            itypes.append("MatrixI")
-                        elif(a.annotation.slice.value.slice.value.id == 'float'):
-                            itypes.append("MatrixF")
-                    elif(a.annotation.slice.value.value.id == 'Tuple'):
-                        print(a.annotation.slice.value.slice.value)
-                        print(a.annotation.slice.value.slice.value.elts[0].id)
-                        print(a.annotation.slice.value.slice.value.elts[1].id)
+            annotation = self.get_next_annotation_rec(a.annotation, "")
+            
+            if(annotation == 'int'):
+                itypes.append("int")
+           
+            elif(annotation == 'float'):
+                itypes.append("float")
+            
+            elif(annotation == "Listint"):
+                itypes.append("VectorI")
 
-                else:
-                    print("I Do not know this subscript")
+            elif(annotation == 'Listfloat'):
+                itypes.append("VectorF")
+            
+            elif(annotation == "ListListint"):
+                itypes.append("MatrixI")
+            
+            elif(annotation == "ListListfloat"):
+                itypes.append("MatrixF")
+            
+            elif(annotation == 'ListTupleintfloat'):
+                itypes.append("ListTupleintfloat")
+             #   itypes.append("MatrixD")
+            
             else:
-                itypes.append(a.annotation.id)
-        
+                raise TypeError("Seems that the annotations are wrong")
 
+
+
+            #if (isinstance(a.annotation, ast.List)):
+             #   if(a.annotation.elts[0].id == 'int'):
+              #      itypes.append("VectorI")
+               # if(a.annotation.elts[0].id == 'float'):
+                #    itypes.append("VectorF")
+            #elif(isinstance(a.annotation, ast.Subscript)):
+             #   if(a.annotation.value.id == 'List'):
+              #      if(isinstance(a.annotation.slice.value, ast.Name)):
+               #         if(a.annotation.slice.value.id == 'int'):
+                #            itypes.append("VectorI")
+                 #       if(a.annotation.slice.value.id == 'float'):
+                  #          itypes.append("VectorF")
+                    #This is the list of list case
+                   # elif(a.annotation.slice.value.value.id == 'List' ):
+                    #    if(a.annotation.slice.value.slice.value.id == 'int'):
+                     #       itypes.append("MatrixI")
+                      #  elif(a.annotation.slice.value.slice.value.id == 'float'):
+                       #     itypes.append("MatrixF")
+                    #This is list List of tuples case
+                    #elif(a.annotation.slice.value.value.id == 'Tuple'):
+                     #   itypes.append("MatrixD")
+                        #print(a.annotation.slice.value.slice.value)
+                        #print(a.annotation.slice.value.slice.value.elts[0].id)
+                        #print(a.annotation.slice.value.slice.value.elts[1].id)
+
+               # else:
+                #    raise TypeError("The function is not annotated correctly")
+                    #print("I Do not know this subscript")
+            #else:
+             #   itypes.append(a.annotation.id)
+        
 
         if(isinstance(node.returns, ast.List)):
             if((node.returns.elts[0].id) == 'int'):
@@ -203,21 +266,6 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         return self.create_decorated_function(node, itypes, otype)
 
 
-# class TheanoImport(ast.NodeTransformer):
-    
-#     """
-#     This function just blindly puts imports for theano and theano.tensor at top of file
-#     """
-    
-#     def visit_Module(self, node):
-#         theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
-#         theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
-#         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-
-#         body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import]+ node.body 
-#         node.body = body_with_needed_imports
-        
-#         return node
 
 def find_function_def_idx(body):
     iterable_list = body.body
@@ -230,9 +278,11 @@ def wrap_with_imports(program):
     theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
     theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
     numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
+    typing_import = ast.ImportFrom(level=0, module='typing', names=[ast.alias(name='List', asname=None), (ast.alias(name='Tuple', asname=None))])
+    functools_import = ast.ImportFrom(level=0, module='functools', names=[ast.alias(name='reduce', asname=None)])
 
 
-    body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import]+ program.body 
+    body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import,functools_import, typing_import]+ program.body 
     program.body = body_with_needed_imports
 
     return program
@@ -241,13 +291,8 @@ def wrap_program_with_signature(program):
 
     idx = find_function_def_idx(program)
     if(idx == -1):
-        print("wrong func def index")
-        #Throw some error
+        raise NotImplementedError()
     
-    #print("index: " + str(idx))
-
-    #print(program.body)
-
     func_name = program.body[idx].name
     func_args = program.body[idx].args
     func_returns = program.body[idx].returns
@@ -276,11 +321,10 @@ def load(path, function):
 
     new_program_with_imports = wrap_with_imports(new_program_with_outer_function)
     #TheanoImport().visit(new_program_with_outer_function)
+    print(astor.to_source(new_program_with_imports))
 
 
     return new_program_with_imports
 
 
-#if __name__ == "__main__":
- #   main(sys.argv[1])
 
