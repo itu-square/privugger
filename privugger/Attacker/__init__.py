@@ -106,7 +106,10 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                                 print(N)
                                 print(len(par))
                                 print(k)
-                                inputs[k].append(dist[k])
+                                try:
+                                    inputs[k].append(dist[k])
+                                except:
+                                    break
                         else:
                             inputs[k].append(par[k])
                     x[k+1] = inputs[k]
@@ -147,6 +150,8 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                 outputs.append(dist)
                 info.append(temp_info)
                 pos+=1
+                print("Testing with:")
+                print(temp_info)
                 output = pm.Deterministic("Output", function(*outputs))
                 trace = pm.sample(samples, cores=1)
                 traces.append((trace, alice_names, info))      

@@ -3,8 +3,8 @@ Module describing possible distributions
 """
 import numpy as np
 
-POSSIBLE_INTS = [i for i in range(6)]
-POSSIBLE_FLOATS = [i for i in range(6,19)]
+POSSIBLE_INTS = [0,1,2,3,4]
+POSSIBLE_FLOATS = [i for i in range(6,13)]
 
 #Ints Value
 BINOMIAL, BERNOULLI, GEOMETRIC, BETA_BINOMIAL, POISSON, DISCRETE_UNIFORM = range(6)
