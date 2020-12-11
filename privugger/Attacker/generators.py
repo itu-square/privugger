@@ -3,7 +3,7 @@ Probability distributions generators
 """
 import pymc3 as pm
 import pymc3.distributions as dist
-from privugger.Attacker.distributions import *
+from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
 import scipy
@@ -142,14 +142,8 @@ def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=
         return Cauchy(name=name, data=data, shape=shape)
     elif dist == GAMMA:
         return Gamma(name=name, data=data, shape=shape)
-    elif dist == LOG_NORMAL:
-        return LogNormal(name=name, data=data, shape=shape)
-    elif dist == CHI_SQUARED:
-        return ChiSquared(name=name, data=data, shape=shape)
-    elif dist == TRIANGULAR:
-        return Triangular(name=name, data=data, shape=shape)
     else:
-        return Logistic(name=name, data=data, shape=shape)
+        raise ValueError("The possible distribution is not supported for Int Generators")
 
 # Int Distributions
 
@@ -596,104 +590,4 @@ def Gamma(data, name, shape=1):
     alpha, beta = data.draw(values)
     a = dist.Gamma(name, alpha, beta, shape=shape)
     b = ["Gamma", alpha, beta]
-    return (a,b)
-
-
-def LogNormal(data, name, shape=1):
-    """
-    Constructs a LogNormal distributions with RV = X ~ LogNormal(mu, sigma)
-
-    Returns: Tuple[Pymc3.distributions.LogNormal, Tuple[String, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, mu, sigma]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=40,width=16)
-    mu = data.draw(positive_floats)
-    sigma = data.draw(positive_floats)
-    a = dist.Lognormal(name, mu=mu, sigma=sigma, shape=shape)
-    b = ["LogNormal", mu, sigma]
-    return (a,b)
-
-
-def ChiSquared(data, name, shape=1):
-    """
-    Constructs a ChiSquared distributions with RV = X ~ ChiSquared(nu)
-
-    Returns: Tuple[Pymc3.distributions.ChiSquared, Tuple[String, int]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, nu]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    positive_int = st.integers(min_value = 1, max_value=40)
-    nu = data.draw(positive_int)
-    a = dist.ChiSquared(name, nu, shape=shape)
-    b = ["ChiSquared", nu]
-    return (a,b)
-
-
-def Triangular(data, name, shape=1):
-    """
-    Constructs a Triangular distributions with RV = X ~ Triangular(lower, middle, upper)
-
-    Returns: Tuple[Pymc3.distributions.Triangular, Tuple[String, float, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, lower, middle, upper]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200,width=16)
-    float_size = (st.tuples(floats, floats,floats)).map(sorted).filter(lambda x: x[0] < x[1] < x[2])
-    lower, middle, upper = data.draw(float_size)
-    a = dist.Triangular(name, lower=lower, c=middle, upper=upper, shape=shape)
-    b = ["Triangular", lower, middle, upper]
-    return(a,b)
-
-
-def Logistic(data, name, shape=1):
-    """
-    Constructs a Logistic distributions with RV = X ~ Logistic(mu, s)
-
-    Returns: Tuple[Pymc3.distributions.Logistic, Tuple[String, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, mu, s]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200,width=16)
-    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=40,width=16)
-    mu = data.draw(floats)
-    s = data.draw(positive_floats)
-    a = dist.Logistic(name, mu=mu, s=s, shape=shape)
-    b = ["Logistic", mu, s]
     return (a,b)

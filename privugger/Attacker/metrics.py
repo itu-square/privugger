@@ -7,7 +7,23 @@ import pickle
 import datetime
 
 class SimulationMetrics:
+    """
+    A method used to convert traces to something a data analyst can use to analyse
+    """
     def __init__(self, traces=[], path=""):
+        """
+        Constructor for SimulationMetrics
+        
+        Parameters:
+        ----------
+        traces: List[Pymc3.trace]
+            - A list of traces returned from simulation
+        path: String
+            - The path to a stored SimulationMetrics
+        """
+        if isinstance(traces, str):
+            path = traces
+            traces = []
         if len(traces):
             self.traces = traces
         else:
@@ -15,13 +31,38 @@ class SimulationMetrics:
         self.I = []
     
     def __str__(self):
+        """
+        Overrides the __str__ str method to print traces
+        """
         return self.traces.__str__()
 
     def load_from_file(self, location):
+        """
+        A method which loads a pickled object as the trace
+
+        Returns:
+        ----------------
+            - A "un"pickled object
+
+        Parameters:
+        ----------------
+        Location: str
+            - The location of the file
+        """
         with open(location, "rb") as file:
             return pickle.load(file)
 
     def plot_mutual_bar(self, shift=0):
+        """
+        A method used in case of multiple parameters
+        Is needed since the traces are than stored in a different sense
+
+        Parameters
+        ------------------
+        Shift: int 
+            - Since there are quite a large number of simulation a shift in the data can be needed
+
+        """
         start, stop = 0,10
         executions = 5 #len(sm.traces)//2//10
         fig, ax = plt.subplots(executions,2, figsize=(20,18))
@@ -49,17 +90,24 @@ class SimulationMetrics:
                 ax[j-shift][p].set_ylim(0,7)
                 ax[j-shift][p].set_title(f"Parameter {p} opposite was {self.traces[start+stop//2][2][1]}")
                 ax[j-shift][p].set_ylabel("$I(X;Y)$")
-            print("\r" + str(j) , end="\r")
         plt.tight_layout()
         plt.show()
 
     def plot_mutual_information(self, figsize=(16,8), as_bar=True):
         """
         Plots the mutual information as a graph for each distribution
+
+        Parameters
+        --------------
+        figsize: Tuple<Int>
+            - The size of the images
+        as_bar: bool
+            - Determines if the distribution should be a dot plot or a bar plot
         """
         I = self.mutual_information()
         size = len(I) if len(I) > 1 else 2
-        _, ax = plt.subplots(size, 1,figsize=figsize)
+        plt.style.use('seaborn-darkgrid')
+        _, ax = plt.subplots(2, 2,figsize=figsize)
         ylim = round(max(self.highest_leakage(head=1, verbose=0), key=lambda x: x[0])[0][0]+0.5)
         for pos, (axs, values) in enumerate(zip(ax.flatten(), I)):
             x = 0
@@ -74,23 +122,44 @@ class SimulationMetrics:
                     for value, info in v:
                         axs.plot([x], value, "x", label=str(info[1:]))
                 best_info = round(max(v, key=lambda x: x[0])[0],2)
-                axs.annotate(str(best_info), xy=(x, best_info))
-                labels.append(str(k))
+                axs.annotate(str(best_info), xy=(x, best_info), fontsize=16)
+                if str(k) == "TruncatedNormal":
+                    labels.append("Truncated \n Normal")
+                else:
+                    labels.append(str(k))
                 x+=1
             if as_bar:
                 axs.bar([i for i in range(len(best_vals))], best_vals)
-            alice = (0,51) if pos == 0 else (0,100)
-            axs.set_title(f"Mutual information for parameter {pos} where A ~ $U$ {alice}")
-            axs.set_ylabel("Mutual Information $I(A:Y)$ \n higher values indicate higher leakage")
-            axs.set_xlabel(f"Distributions")
+            alice = {0: (0,100), 1: (0,300), 2: (0,10), 3: (0,1)}
+            pi_pos = "A_{\pi_" + str(pos+1) + "}"
+            title = f"$I(Y_{pos+1};{pi_pos})$ for parameter {pos+1} where ${pi_pos}$ ~ $U$ {alice[pos]}"
+            ylabel = f"$I(Y_{pos+1};{pi_pos})$"
+            axs.set_title(title, fontsize=16)
+            axs.set_ylabel(ylabel, fontsize=14)
+            axs.set_xlabel(f"Distributions", fontsize=14)
             axs.set_xticks(range(len(labels)))
-            axs.set_xticklabels(labels, fontsize=12)
+            axs.set_xticklabels(labels, fontsize=14)
             axs.set_ylim(0,ylim)
             pos += 1
         plt.tight_layout()
         plt.show()
 
     def highest_leakage(self, head=1, verbose=1):
+        """
+        A method used to calculate the highest leakage grouped by each distribution
+
+        Returns
+        -----------
+        List[Tuple[Float, Tuple[String, ]]]
+            - Returns a list containing the mutual information next to the specific distribution
+
+        Parameters
+        -----------
+        head: Int
+            - Determines how many distributions are included
+        verbose: int
+            - Detmines if the distributions should be printed
+        """
         if not len(self.I):
             self.mutual_information()
         best_vals = []
@@ -105,36 +174,28 @@ class SimulationMetrics:
             best_vals.append(best_dist[:head])
         return best_vals
 
-    def plot_distributions(self):
-        best = self.highest_leakage()
-        _, ax = plt.subplots(len(best),1)
-        for parameter_pos, best_vals in enumerate(best):
-            l,h = (0,100) if parameter_pos else (0,51)
-            x = np.linspace(l,h,(h-l)*20)
-            alice_pmf = [1.0 / (h - l + 1)] * len(x)
-            ax[parameter_pos].plot(x, alice_pmf, label=f"Alice ~ $U$(0,51)")
-            for dist in best_vals:
-                pmf, name = self.parse_dist(x, dist)
-                ax[parameter_pos].plot(x, pmf, label=name)
-            ax[parameter_pos].legend()
-        plt.show()
+    def save_to_file(self, location=""):
+        """
+        Save the particular trace to a file with the format:  Metrics-%Y-%m-%d-%H-%M-%S.priv
 
-    def parse_dist(self, x, dist):
-        name = dist[1][0]
-        parameters = dist[1][1:]
-        if name == "Poisson":
-            return (st.poisson.pmf(x, parameters[0]), f"Poisson: $\mu$ = {parameters[0]}")
-        elif name == "Beta":
-            return (st.beta.pdf(x, parameters[0], parameters[1]), r"Beta: $\alpha$ = {}, $\beta$ = {}".format(parameters[0], parameters[1]))
-        else:
-            return (x, "")
-
-    def save_to_file(self, location):
+        Parameter:
+        -----------
+        location: string
+            - The location in which the files should be saved
+        """
         date = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         with open(location+f"metrics-{date}.priv", "wb") as file:
             pickle.dump(self.traces, file)
 
     def mutual_information(self):
+        """
+        Calculates the mutual information for each distribution and appends them to a global variable I
+
+        Returns
+        --------
+        List[float, List[String,]]
+            - A list of the mutual information paired with its respective distribution
+        """
         _, names, _ = self.traces[0]
         size = len(names)
         mutual_information = [{} for _ in range(size)]

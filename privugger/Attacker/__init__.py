@@ -1,8 +1,8 @@
 from hypothesis import settings, given, Phase, HealthCheck, strategies as st
 import numpy as np
 import pymc3 as pm
-from privugger.Attacker.generators import IntGenerator, IntList, FloatGenerator, FloatList, DiscreteUniform, Uniform
-from privugger.Attacker.metrics import SimulationMetrics
+from privugger.attacker.generators import IntGenerator, IntList, FloatGenerator, FloatList, DiscreteUniform, Uniform
+from privugger.attacker.metrics import SimulationMetrics
 from sklearn.feature_selection import mutual_info_regression
 import typing
 import inspect
@@ -12,6 +12,31 @@ The data privacy debugger, PRIVUGER, is a privacy risk analysis tool.
 """
 
 def simulate(function, *args, **kwargs) -> SimulationMetrics:
+    """
+    The main method used to simulate a method
+
+    **Returns: SimulationMetrics **
+    ----------
+        - Returns a SimulationMetrics, a method helped to assist the data analyst
+
+    **Parameters:**
+    ----------
+    Types: Types
+        - The types that your method takes
+        - Example: Tuple[int, float]
+    *number_of_test: int*
+        - Number of test to be executed
+        - Default: 1
+    *size: int*
+        - Size of the database to simulate
+        - Default: 4
+    *samples: int*
+        - Number of samples per. execution
+        - Default: 1000
+    *ranges: list[tuple[int,int]]*
+        - A list of ranges that the distributions should mimic
+        - Default: (0, 100)
+    """
     # Check that all parameters have type annotation:
     if len(inspect.signature(function).parameters) != len(function.__annotations__)-1:
         raise TypeError("You need to specify all types in your method before analyzing")
@@ -34,9 +59,6 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
         logger = logging.getLogger("pymc3")
         logger.setLevel(logging.ERROR)
         logger.propagate = False
-    """
-    TODO: Extend the support for ranges
-    """
     @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate], suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
     @given(st.data())
     def helper(data):
@@ -103,9 +125,6 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                     for par in d:
                         if len(par) > 1:
                             for dist in par:
-                                print(N)
-                                print(len(par))
-                                print(k)
                                 try:
                                     inputs[k].append(dist[k])
                                 except:
@@ -142,7 +161,6 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
         if len(parameters) == 2:
             with pm.Model() as model:
                 # Means that we only have one parameter to generate. 
-                # TODO: See if binary search can be an idea
                 p = parameters[0]
                 (alice, dist, temp_info), pos = parse(p, parameter_pos=pos, ranges=ranges)
                 for n in alice:
@@ -150,8 +168,6 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                 outputs.append(dist)
                 info.append(temp_info)
                 pos+=1
-                print("Testing with:")
-                print(temp_info)
                 output = pm.Deterministic("Output", function(*outputs))
                 trace = pm.sample(samples, cores=1)
                 traces.append((trace, alice_names, info))      
