@@ -40,9 +40,7 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
     # Check that all parameters have type annotation:
     if len(inspect.signature(function).parameters) != len(function.__annotations__)-1:
         raise TypeError("You need to specify all types in your method before analyzing")
-        """
-        TODO: Investigate if TypeError is the correct error to throw
-        """
+
     # The output trace:
     traces = []
 
@@ -54,14 +52,17 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
     ranges = [(-10000, 10000) for _ in range(len(inspect.signature(function).parameters))] if "ranges" not in kwargs else kwargs["ranges"]
     logging = True if "logging" not in kwargs else kwargs["logging"]
 
+    #Logging
     if not logging:
         import logging
         logger = logging.getLogger("pymc3")
         logger.setLevel(logging.ERROR)
         logger.propagate = False
+
     @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate], suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
     @given(st.data())
     def helper(data):
+
         def parse(argument, islist=False, istuple=False, parameter_pos=0, ranges=ranges):
             """
             PSEUDO CODE FOR PARSE:
@@ -142,6 +143,7 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
                     d.append(dist)
                     i.append(info)
                 return ((tuple(alice_info), tuple(d), tuple(i)), parameter_pos)
+
         #Progress bar
         current_test.append([])
         percentage = (len(current_test)/max_examples)
@@ -150,17 +152,16 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
         tail = "-"*(int(width*(1-percentage)))
         print("\r["+fill+tail+"] " + str(len(current_test)) + "/" + str(max_examples), end="\r")
 
-
+        #Parameters setup
         parameters = list(function.__annotations__.values())
         pos = 0
         alice_names = []
         outputs = []
         info = []
 
-
+        #A single data type
         if len(parameters) == 2:
             with pm.Model() as model:
-                # Means that we only have one parameter to generate. 
                 p = parameters[0]
                 (alice, dist, temp_info), pos = parse(p, parameter_pos=pos, ranges=ranges)
                 for n in alice:
@@ -174,7 +175,6 @@ def simulate(function, *args, **kwargs) -> SimulationMetrics:
         else:
             TEST_PER_PARAMETER = 10
             # generate for the first parameter and keep the other locked
-            # TODO: figure out how to keep the distribution the same for the locked ones
             for p_pos, p in enumerate(parameters[:-1]):
                 pos = 0
                 with pm.Model() as model:
