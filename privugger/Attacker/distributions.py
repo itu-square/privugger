@@ -3,8 +3,8 @@ Module describing possible distributions
 """
 import numpy as np
 
-POSSIBLE_INTS = [i for i in range(6)]
-POSSIBLE_FLOATS = [i for i in range(6,19)]
+POSSIBLE_INTS = [0,1,2,3,4]
+POSSIBLE_FLOATS = [i for i in range(6,13)]
 
 #Ints Value
 BINOMIAL, BERNOULLI, GEOMETRIC, BETA_BINOMIAL, POISSON, DISCRETE_UNIFORM = range(6)
@@ -12,8 +12,7 @@ BINOMIAL, BERNOULLI, GEOMETRIC, BETA_BINOMIAL, POISSON, DISCRETE_UNIFORM = range
 #Floats Value
 NORMAL, UNIFORM, TRUNCATED_NORMAL = range(6,9)
 BETA, EXPONENTIAL, LAPLACE, STUDENT_T = range(9, 13)
-CAUCHY, GAMMA, LOG_NORMAL = range(13, 16)
-CHI_SQUARED, TRIANGULAR, LOGISTIC = range(16,19)
+CAUCHY, GAMMA = range(13, 15)
 
 #MINIMUM COVERAGE
 MINIMUM_PERCANTAGE_COVERAGE = 5.0
@@ -37,7 +36,3 @@ class Support:
     STUDENT_T = (-np.inf, np.inf)
     CAUCHY = (-np.inf, np.inf)
     GAMMA = (0, np.inf)
-    LOG_NORMAL = (0, np.inf)
-    CHI_SQUARED = (0, np.inf)
-    TRIANGULAR = (-np.inf, np.inf)
-    LOGISTIC = (-np.inf, np.inf)
