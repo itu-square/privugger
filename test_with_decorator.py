@@ -25,11 +25,13 @@ import astor
 #             len(database)) + laplace_noise
 
 
+def alpha2(database: List[int]) -> int:
+    return reduce(lambda i,j: i+j, database)
 
 #lift the program
 #program variable is the new AST of the transformed program
 #in the "load"-function specify the path to the file, and the function to analyse
-program = load("privugger/Transformer/password-program.py", "original_pwd_checker")
+program = load("privugger/Transformer/password-program.py", "alpha")
 
 #Write this to a file called "typed.py". This file need to exist somewhere
 with open("privugger/Transformer/typed.py", "w") as decorated_file: 
