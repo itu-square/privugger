@@ -84,15 +84,18 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             
 
     def wrap_output_type(self, out_body, out_type):
-        if((isinstance(out_body, ast.Name) or isinstance(out_body, ast.Compare))):
+        print(out_body)
+        if((isinstance(out_body, ast.Name) or isinstance(out_body, ast.Compare) or isinstance(out_body, ast.ListComp) or isinstance(out_body, ast.BinOp) )):
             if(out_type == 'int'):
                 o_attr = 'int64'
-            elif(out_type == 'float'):
-                o_attr = 'float32'
-            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD'):
+            #elif(out_type == 'float'):
+             #   o_attr = 'float64'
+            elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD' or 'float'):
                 o_attr = 'array'
             return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
         
+
+
         if( isinstance(out_body, ast.Constant)):
             if(out_type == 'int'):
                 o_attr = 'int64'
@@ -241,9 +244,16 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         out_annotation_type = self.get_next_annotation(node.returns)
         if(type(out_annotation_type) == at.List):
             if(type(out_annotation_type.a_type) == at.List):
-                otype = TheanoToken.float_matrix
+                if(out_annotation_type.a_type.a_type == at.Int):
+                    outype = TheanoTokoen.int_matrix
+                else:
+                    otype = TheanoToken.float_matrix
             elif(type(out_annotation_type.a_type) == at.Tuple):
-                otype = TheanoToken.float_matrix
+                all_ints = all(isinstance(t, at.Int) for t in out_annotation_type.a_type.a_type)
+                if all_ints:
+                    otype = TheanoToken.int_matrix
+                else:
+                    otype = TheanoToken.float_matrix
             elif(type(out_annotation_type.a_type) == at.Int):
                 otype = TheanoToken.int_scalar
             elif(type(out_annotation_type.a_type) == at.Float):
@@ -255,7 +265,11 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             otype = (TheanoToken.float_scalar)
             
         elif(type(out_annotation_type) == at.Tuple):
-            otype = TheanoToken.float_matrix
+            all_ints = all(isinstance(t, at.Int) for t in out_annotation_type.a_type)
+            if(all_ints):
+                otype = TheanoToken.int_matrix
+            else:
+                otype = TheanoToken.float_matrix
          
         else:
             raise TypeError("Seems that the annotations are wrong")
@@ -373,32 +387,36 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         func_name = program.body[idx].name
         func_args = program.body[idx].args
-        new_args = self.construct_python_args()
 
+        if(self.has_tuples or self.has_list_tuples):
 
-        new_args_idx = []
-        original_name = None
-        for i in range(len(new_args.args)):
-            new = new_args.args[i].annotation
-            if(not i >= len(func_args.args)):
-                old = func_args.args[i].annotation
-                if(isinstance(old, ast.Subscript) and not isinstance(new, ast.Subscript)):
+            new_args = self.construct_python_args()
+            new_args_idx = []
+            original_name = None
+            for i in range(len(new_args.args)):
+                new = new_args.args[i].annotation
+                if(not i >= len(func_args.args)):
+                    old = func_args.args[i].annotation
+                    if(isinstance(old, ast.Subscript) and not isinstance(new, ast.Subscript)):
+                        new_args_idx.append(i)
+                    
+                    if(isinstance(old, ast.Subscript)):
+                        if(isinstance(old.slice.value, ast.Tuple)):
+                            new_args_idx.append(i)
+                            original_name = func_args.args[i].arg
+                        elif(old.slice.value.value.id == "Tuple"):
+                            new_args_idx.append(i)
+                            original_name = func_args.args[i].arg
+
+                else:
                     new_args_idx.append(i)
-                
-                if(isinstance(old, ast.Subscript)):
-                    if(isinstance(old.slice.value, ast.Tuple)):
-                        new_args_idx.append(i)
-                        original_name = func_args.args[i].arg
-                    elif(old.slice.value.value.id == "Tuple"):
-                        new_args_idx.append(i)
-                        original_name = func_args.args[i].arg
-
-            else:
-                new_args_idx.append(i)
-        # print(new_args_idx)
+                    # print(new_args_idx)
 
 
-        new_body = self.construct_python_body(program.body[idx], new_args, new_args_idx, original_name)
+            new_body = self.construct_python_body(program.body[idx], new_args, new_args_idx, original_name)
+        else:
+            new_args = func_args
+            new_body = program.body[idx]
 
   
         #Check every arguments, to see if it contains a tuple or a list of tuples
@@ -407,9 +425,11 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         # print(idx_has_tuple_arguments)
 
         func_returns = program.body[idx].returns
+        
         arg_identifiers = []
         for a in new_args.args:
             arg_identifiers.append(a.arg)
+               
     
         returns = ast.Return(value=ast.Call(args=[ast.arguments(args=arg_identifiers, defaults=[], vararg=None, kwarg=None)], func=ast.Name(id=func_name, ctx=ast.Load()), keywords=[]))
 
