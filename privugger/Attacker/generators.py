@@ -3,12 +3,12 @@ Probability distributions generators
 """
 import pymc3 as pm
 import pymc3.distributions as dist
-from privugger.Attacker.distributions import *
+from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
 import scipy
 
-def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
+def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS, ranges=(0, np.inf)):
     """
     Generates a list of probabilistics distributions to mimic all possible int values
     
@@ -27,13 +27,13 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS):
     possible_dist: List[Int]
         - A list of ints to be chosen from Privugger.distributions, indicating which distributions to choose from.
     """
-    rand = data.draw(st.randoms(use_true_random=False))
-    use_multiple_dist = rand.choice([1])
+    rand = data.draw(st.randoms(use_true_random=True))
+    use_multiple_dist = rand.choice([0])
     if use_multiple_dist and len(possible_dist) < 0:
         dist, info = tuple(zip(*[IntGenerator(data=data, name=f"{name}{i}", shape=1) for i in range(length)]))
         return (dist, info)
     else:
-        return IntGenerator(data=data, name=name, shape=length)
+        return IntGenerator(data=data, name=name, shape=length, ranges=ranges)
 
 def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.inf, np.inf)):
     """
@@ -57,13 +57,13 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.i
     rand = data.draw(st.randoms(use_true_random=True))
     use_same_shape = rand.choice([1])
     if use_same_shape:
-        return FloatGenerator(name, data, possible_dist=possible_dist ,shape=length, ranges=ranges)
+        return FloatGenerator(name, data, possible_dist=[TRUNCATED_NORMAL], shape=length, ranges=ranges)
     else:
         dist, info = tuple(zip(*[FloatGenerator(name+str(i), data, possible_dist=possible_dist, ranges=ranges) for i in range(length)]))
         return (dist, info)
 
 
-def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np.inf, np.inf)):
+def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(0, np.inf)):
     """
     A method for generating a single probabilistic distributions to mimic int distribution
 
@@ -82,20 +82,26 @@ def IntGenerator(data, name, possible_dist = POSSIBLE_INTS, shape=1, ranges=(-np
     shape: Int
         - The dimensionality of the distribution
     """
-    rand = data.draw(st.randoms(use_true_random=False))
+    if ranges[0] < 0 or ranges[0] >= ranges[1]:
+        raise ValueError("The ranges has to be greater than or equal to 0 and in increasing order. E.g. (0,100)")
+    rand = data.draw(st.randoms(use_true_random=True))
+    if ranges[1] > 1 and BERNOULLI in possible_dist:
+        possible_dist.remove(BERNOULLI)
     dist = rand.choice(possible_dist)
     if dist == BINOMIAL:
-        return Binomial(data=data, name=name, shape=shape)
+        return Binomial(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == BERNOULLI:
-        return Bernoulli(data=data, name=name, shape=shape) 
+        return Bernoulli(data=data, name=name, shape=shape, ranges=ranges) 
     elif dist == GEOMETRIC:
-        return Geometric(data=data, name=name, shape=shape)
+        return Geometric(data=data, name=name, shape=shape, ranges=ranges)
     elif dist == BETA_BINOMIAL:
-        return BetaBinomial(name=name, data=data, shape=shape)
+        return BetaBinomial(name=name, data=data, shape=shape, ranges=ranges)
     elif dist == POISSON:
-        return Poisson(name=name, data=data, shape=shape)
-    else:
+        return Poisson(name=name, data=data, shape=shape, ranges=ranges)
+    elif dist == DISCRETE_UNIFORM:
         return DiscreteUniform(name=name, data=data, shape=shape, ranges=ranges)
+    else:
+        raise ValueError("The possible distribution is not supported for Int Generators")
 
 def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=(-np.inf, np.inf)):
     """
@@ -136,18 +142,12 @@ def FloatGenerator(name, data, possible_dist = POSSIBLE_FLOATS, shape=1, ranges=
         return Cauchy(name=name, data=data, shape=shape)
     elif dist == GAMMA:
         return Gamma(name=name, data=data, shape=shape)
-    elif dist == LOG_NORMAL:
-        return LogNormal(name=name, data=data, shape=shape)
-    elif dist == CHI_SQUARED:
-        return ChiSquared(name=name, data=data, shape=shape)
-    elif dist == TRIANGULAR:
-        return Triangular(name=name, data=data, shape=shape)
     else:
-        return Logistic(name=name, data=data, shape=shape)
+        raise ValueError("The possible distribution is not supported for Int Generators")
 
 # Int Distributions
 
-def Binomial(data, name, shape=1):
+def Binomial(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a binomial distributions with RV = X ~ Binomial(n,p)
 
@@ -164,10 +164,11 @@ def Binomial(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    ints = st.integers(min_value=1, max_value=10000)
-    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
-    n = data.draw(ints)
-    p = data.draw(probability)
+    l,h = ranges
+    mean = lambda n,p: n*p
+    ints = st.integers(min_value=l, max_value=10000)
+    probability = st.floats(min_value=0.0010004043579101562, max_value=0.990234375, allow_infinity=False, allow_nan=False, width=16)
+    n,p = data.draw(st.tuples(ints,probability).map(sorted).filter(lambda x: l <= mean(x[0],x[1]) <= h))
     if shape > 1:
         a = dist.Binomial(name=name, n=n, p=p, shape=shape)
     else:
@@ -176,7 +177,7 @@ def Binomial(data, name, shape=1):
     return (a,b)
 
 
-def Bernoulli(data, name, shape=1):
+def Bernoulli(data, name, shape=1, ranges=(0,1)):
     """
     Constructs a bernoulli distributions with RV = X ~ Bernoulli(p)
 
@@ -193,7 +194,7 @@ def Bernoulli(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+    probability = st.floats(min_value=0.0010004043579101562, max_value=0.990234375,allow_infinity=False, allow_nan=False,width=16)
     p = data.draw(probability)
     if shape > 1:
         a = dist.Bernoulli(name=name, p=p, shape=shape)
@@ -203,7 +204,7 @@ def Bernoulli(data, name, shape=1):
     return (a,b)
     
 
-def Geometric(data, name, shape=1):
+def Geometric(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a geometric distributions with RV = X ~ Geometric(p)
 
@@ -220,7 +221,9 @@ def Geometric(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    probability = st.floats(min_value=0.001, max_value=0.9999,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    mean = lambda p: 1/p
+    probability = st.floats(min_value=0.0010004043579101562, max_value=0.990234375,allow_infinity=False, allow_nan=False,width=16).filter(lambda x: l <= mean(x) <= h)
     p = data.draw(probability)
     if shape > 1:
         a = dist.Geometric(name=name, p=p, shape=shape)
@@ -230,7 +233,7 @@ def Geometric(data, name, shape=1):
     return (a,b)
 
 
-def BetaBinomial(data, name, shape=1):
+def BetaBinomial(data, name, shape=1, ranges=(1, np.inf)):
     """
     Constructs a BetaBinomial distributions with RV = X ~ BetaBinomial(n, a, ß)
 
@@ -247,8 +250,11 @@ def BetaBinomial(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    ints = st.integers(min_value=1, max_value=10000)
-    positive_float = st.floats(min_value=0.001, max_value=10000,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    mean = lambda n,a,b: (n*a)/(a+b)
+    ints = st.integers(min_value=l, max_value=10000)
+    positive_float = st.floats(min_value=0.0999755859375, max_value=10000,allow_infinity=False, allow_nan=False,width=16)
+    tuples = st.tuples(ints,positive_float,positive_float).map(sorted).filter(lambda x: l <= mean(x[0],x[1],x[2]) <= h)
     n = data.draw(ints)
     alpha = data.draw(positive_float)
     beta = data.draw(positive_float)
@@ -260,7 +266,7 @@ def BetaBinomial(data, name, shape=1):
     return (a,b)
 
 
-def Poisson(data, name, shape=1):
+def Poisson(data, name, shape=1, ranges=(0, np.inf)):
     """
     Constructs a Poisson distributions with RV = X ~ Poisson(µ)
 
@@ -277,7 +283,8 @@ def Poisson(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    non_negativ_float = st.floats(min_value=0, max_value=10000,allow_infinity=False, allow_nan=False)
+    l,h = ranges
+    non_negativ_float = st.floats(min_value=l, max_value=10000,allow_infinity=False, allow_nan=False,width=16).filter(lambda x: l <= x <= h)
     mu = data.draw(non_negativ_float)
     if shape > 1:
         a = dist.Poisson(name, mu=mu, shape=shape)
@@ -307,19 +314,17 @@ def DiscreteUniform(data, name, ranges=(-np.inf, np.inf), shape=1):
     low, high = min(ranges), max(ranges)
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    cdf = lambda l,h,a,b: (b-a)/(h-l-2*a)
     values = st.integers(min_value=low, max_value=high)
+    mean = lambda l,h: (h+l)/2
     size = (st.tuples(values, values)
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1] and x[1]-x[0] > (MINIMUM_PERCANTAGE_COVERAGE/100)*(high-low)))
+                .filter(lambda x: x[0] < x[1] and  low <= mean(x[0],x[1]) <= high))
     lower, upper = data.draw(size)
     a = dist.DiscreteUniform(name, lower, upper)
     b = ["DiscreteUniform", lower, upper]
     return (a,b)
 
 # Float Distributions
-
-
 def Normal(data, name, shape=1, ranges=(0, 100)):
     """
     Constructs a Normal distributions with RV = X ~ Normal(µ,sigma)
@@ -343,12 +348,11 @@ def Normal(data, name, shape=1, ranges=(0, 100)):
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
 
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=high-low,width=16)
 
-    cdf = lambda mu, sigma: (1/2*scipy.special.erfc((mu-high)/(np.sqrt(2)*sigma)))-(1/2*scipy.special.erfc((mu-low)/(np.sqrt(2)*sigma)))
-    values = st.tuples(floats, positive_floats).filter(lambda x: (1/cdf(x[0],x[1])) > MINIMUM_COVERAGE(low, high))
-
+    mean = lambda mu, sigma: mu
+    values = st.tuples(floats, positive_floats).filter(lambda x: low <= mean(x[0], x[1]) <= high)
     mu, sigma = data.draw(values)
     a = dist.Normal(name=name, mu=mu, sigma=sigma, shape=shape)
     b = ["Normal", mu,sigma]
@@ -375,10 +379,11 @@ def Uniform(data, name, shape=1, ranges=(0,100)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    cdf = lambda h,l,a,b: (b-a)/(h-l-2*a)
-    size = (st.tuples(st.floats(min_value=low, max_value=high), st.floats(min_value=low, max_value=high))
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16)
+    mean = lambda a,b: (a+b)/2
+    size = (st.tuples(floats, floats)
                 .map(sorted)
-                .filter(lambda x: x[0] < x[1] and cdf(high, low, x[0], x[1]) > MINIMUM_COVERAGE(low,high)))
+                .filter(lambda x: x[0] < x[1] and low <= mean(x[0],x[1]) <= high))
     lower, upper = data.draw(size)
     a = dist.Uniform(name, lower=lower, upper=upper, shape=shape)
     b = ["Uniform", lower, upper]
@@ -405,8 +410,8 @@ def TruncatedNormal(data, name, shape=1, ranges=(-np.inf, np.inf)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16).filter(lambda x: low <= x <= high)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=high-low,width=16)
     size = (st.tuples(st.integers(min_value=low, max_value=high), st.integers(min_value=low, max_value=high))
                 .map(sorted)
                 .filter(lambda x: x[0] < x[1]))
@@ -435,7 +440,7 @@ def Beta(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=40,width=16)
     alpha = data.draw(positive_floats)
     beta = data.draw(positive_floats)
     a = dist.Beta(name, alpha=alpha, beta=beta, shape=shape)
@@ -464,7 +469,7 @@ def Exponential(data, name, shape=1, ranges=(-np.inf, np.inf)):
     low = low if low != -np.inf else 0
     high = high if high != np.inf else 1000
         
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=50)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=50,width=16).filter(lambda x: low <= 1/x <= high)
     lam = data.draw(positive_floats)
     a = dist.Exponential(name, lam, shape=shape)
     if not low:
@@ -495,8 +500,8 @@ def Laplace(data, name, shape=1, ranges=(-np.inf, np.inf)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=50)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16).filter(lambda x: low <= x <= high)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=50,width=16)
     mu = data.draw(floats)
     bi = data.draw(positive_floats)
     a = dist.Laplace(name, mu=mu, b=bi, shape=shape)
@@ -524,8 +529,8 @@ def StudentT(data, name, shape=1, ranges=(-np.inf, np.inf)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=high-low)
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=high-low,width=16)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16)
     nu = data.draw(positive_floats)
     mu = data.draw(floats)
     sigma = data.draw(positive_floats)
@@ -554,8 +559,8 @@ def Cauchy(data, name, shape=1, ranges=(-np.inf, np.inf)):
     low, high = ranges
     low = low if low != -np.inf else -1000
     high = high if high != np.inf else 1000
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=10)
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=10,width=16)
+    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=low, max_value=high,width=16)
     alpha = data.draw(floats)
     beta = data.draw(positive_floats)
     a = dist.Cauchy(name, alpha=alpha, beta=beta, shape=shape)
@@ -580,109 +585,9 @@ def Gamma(data, name, shape=1):
     shape: int
         - The dimensionality of the distribution
     """
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
-    alpha = data.draw(positive_floats)
-    beta = data.draw(positive_floats)
+    positive_floats = st.floats(min_value=0.0999755859375,allow_infinity=False, allow_nan=False,max_value=40,width=16)
+    values = st.tuples(positive_floats, positive_floats).map(sorted).filter(lambda x: low <= (x[0]/x[1]) <= high)
+    alpha, beta = data.draw(values)
     a = dist.Gamma(name, alpha, beta, shape=shape)
     b = ["Gamma", alpha, beta]
-    return (a,b)
-
-
-def LogNormal(data, name, shape=1):
-    """
-    Constructs a LogNormal distributions with RV = X ~ LogNormal(mu, sigma)
-
-    Returns: Tuple[Pymc3.distributions.LogNormal, Tuple[String, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, mu, sigma]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
-    mu = data.draw(positive_floats)
-    sigma = data.draw(positive_floats)
-    a = dist.Lognormal(name, mu=mu, sigma=sigma, shape=shape)
-    b = ["LogNormal", mu, sigma]
-    return (a,b)
-
-
-def ChiSquared(data, name, shape=1):
-    """
-    Constructs a ChiSquared distributions with RV = X ~ ChiSquared(nu)
-
-    Returns: Tuple[Pymc3.distributions.ChiSquared, Tuple[String, int]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, nu]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    positive_int = st.integers(min_value = 1, max_value=40)
-    nu = data.draw(positive_int)
-    a = dist.ChiSquared(name, nu, shape=shape)
-    b = ["ChiSquared", nu]
-    return (a,b)
-
-
-def Triangular(data, name, shape=1):
-    """
-    Constructs a Triangular distributions with RV = X ~ Triangular(lower, middle, upper)
-
-    Returns: Tuple[Pymc3.distributions.Triangular, Tuple[String, float, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, lower, middle, upper]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
-    float_size = (st.tuples(floats, floats,floats)).map(sorted).filter(lambda x: x[0] < x[1] < x[2])
-    lower, middle, upper = data.draw(float_size)
-    a = dist.Triangular(name, lower=lower, c=middle, upper=upper, shape=shape)
-    b = ["Triangular", lower, middle, upper]
-    return(a,b)
-
-
-def Logistic(data, name, shape=1):
-    """
-    Constructs a Logistic distributions with RV = X ~ Logistic(mu, s)
-
-    Returns: Tuple[Pymc3.distributions.Logistic, Tuple[String, float, float]]
-    ----------
-        - Returns a tuple with distributions paired with the [name, mu, s]
-    
-    Parameters:
-    ----------
-    name: str
-        - The name of the ditributions
-    data: hypothesis.data
-        - The hypothesis data used to draw the distributions
-    shape: int
-        - The dimensionality of the distribution
-    """
-    floats = st.floats(allow_infinity=False, allow_nan=False, min_value=-100, max_value=200)
-    positive_floats = st.floats(min_value=0.1,allow_infinity=False, allow_nan=False,max_value=40)
-    mu = data.draw(floats)
-    s = data.draw(positive_floats)
-    a = dist.Logistic(name, mu=mu, s=s, shape=shape)
-    b = ["Logistic", mu, s]
     return (a,b)
