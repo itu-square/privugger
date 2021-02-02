@@ -2,8 +2,8 @@ import ast
 import astor
 import sys
 import argparse
-import privugger.privugger.Transformer.annotation_types as at
-from privugger.privugger.Transformer.theano_types import TheanoToken
+import privugger.transformer.annotation_types as at
+from privugger.transformer.theano_types import TheanoToken
 
 
 class FunctionTypeDecorator(ast.NodeTransformer):
