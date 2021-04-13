@@ -1,30 +1,17 @@
 .. privugger documentation master file, created by
-   sphinx-quickstart on Tue Mar 30 09:56:09 2021.
+   sphinx-quickstart on Tue Apr 13 12:28:39 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Privugger Documentation
-=======================
+Welcome to privugger's documentation!
+=====================================
 
-The data privacy debugger, PRIVUGGER, is a privacy risk analysis tool.
-
-Installation guide
-==================
-How to install the tool.::
-
-   pip install privugger
-
-
-Guide
-^^^^^^
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Contents:
 
-   docs
-   tutorial
-   license
-
+   privugger
+   example
 
 
 Indices and tables
