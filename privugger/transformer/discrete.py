@@ -57,23 +57,25 @@ class Binomial(Discrete):
         self.num_elements=num_elements
     
     def pymc3_dist(self, name):
-        return pm.Binomial(name. n=self.n, p=self.p, shape=self.num_elements)
+        return pm.Binomial(name, n=self.n, p=self.p, shape=self.num_elements)
 
 
 
 class DiscreteUniform(Discrete):
-    def __init__(self,lower=0, upper=1):
+    def __init__(self,lower=0, upper=1, num_elements=2):
         self.lower = lower
         self.upper = upper
+        self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape.self.num_elemts)
+        pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
 
 class Geometric(Discrete):
     
-    def __init__(self, p=0.5):
+    def __init__(self, p=0.5, num_elements=2):
         self.p=p
+        self.num_elements=num_elements
 
     def pymc3_dist(self, name):
         pm.Geometric(name, p=self.p, shape=self.num_elements)
