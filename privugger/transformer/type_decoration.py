@@ -16,10 +16,33 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
  
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         self.function_name = name
 
- 
+    
+    def get_function_def_ast(self, tree):
+        
+        for i in range(len(tree)):
+            if(isinstance(tree[i], ast.FunctionDef)):
+                return tree[i]
+        raise TypeError("did not find any function definition in program")
+
+    def lift(self, program, decorators):
+        """
+        This funtion provides another path to program lifting, when the decoration types are given directly
+            
+        :param program: path to program
+        :param decorators: list of the decorator types
+        
+        """
+        tree = ast.parse(open(program).read())
+        #print(ast.dump(tree))
+        function_def = self.get_function_def_ast(tree.body)
+        #print(decorators[0])
+        #print(decorators[1][0])
+        node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
+        return node
+
     
     def translate_type(self, p_type):
         """
@@ -74,17 +97,21 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     def find_return_ast(self, body):
                 
         """
-        This function will turn an output to a theano-friendly type (ex: int -> np.int64)
+        This function will find the return statements in original program
 
         """
+        return_list = []
         for i in range(len(body)):
-            if( isinstance(body[i], ast.Return)):
-                return (body[i],i)
-        return (None)
-            
+            if(isinstance(body[i], ast.Return)):
+                return_list.append((body[i], i))
+            else:
+                print(body[i])
+        if(len(return_list) > 0):
+            return return_list
+        else:
+           return None 
 
     def wrap_output_type(self, out_body, out_type):
-        print(out_body)
         if((isinstance(out_body, ast.Name) or isinstance(out_body, ast.Compare) or isinstance(out_body, ast.ListComp) or isinstance(out_body, ast.BinOp) )):
             if(out_type == 'int'):
                 o_attr = 'int64'
@@ -145,11 +172,14 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         theano_decorator_list = [ast.Call(func=ast.Attribute(value=ast.Attribute(
         value=ast.Attribute(value=ast.Name(id='theano', ctx=ast.Load()), attr='compile', ctx=ast.Load()), attr='ops', ctx=ast.Load()), attr='as_op', ctx=ast.Load()), args=[], keywords=theano_keywords)]
         
-        (return_body, index) = self.find_return_ast(node.body)
-        wrapped_return_body = self.wrap_output_type(return_body.value, otype)
-        node.body[index] = wrapped_return_body
+        #return_body, index = self.find_return_ast(node.body)
+        return_list = self.find_return_ast(node.body)
+        if(return_list is not None):
+            for r in return_list:
+                wrapped_return_body = self.wrap_output_type(r[0].value, otype)
+                node.body[r[1]] = wrapped_return_body
         node.decorator_list = theano_decorator_list
-        return (node) 
+        return node 
 
 
     def get_next_annotation(self, arg):
@@ -274,29 +304,6 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         else:
             raise TypeError("Seems that the annotations are wrong")
 
-
-        # print(out_annotation_type)
-        # print(out_annotation_type.a_type)
-        # if(isinstance(node.returns, ast.List)):
-        #     if((node.returns.elts[0].id) == 'int'):
-        #         otype = 'VectorI'
-        #     if((node.returns.elts[0].id) == 'float'):
-        #         otype = 'VectorF'
-        # elif(isinstance(node.returns, ast.Subscript)):
-        #     if(node.returns.value.id == 'List'):
-        #         if(isinstance(node.returns.slice.value, ast.Name)):
-        #             if(node.returns.slice.value.id == 'int'):
-        #                 otype = 'VectorI'
-        #             elif(node.returns.slice.value.id == 'float'):
-        #                 otype = 'VectorF'
-        #         #This is the list of list case
-        #         elif(node.returns.slice.value.value.id == 'List'):
-        #             if(node.returns.slice.value.slice.value.id == 'int'):
-        #                 otype = 'MatrixI'
-        #             elif(node.returns.slice.value.slice.value.id == 'float'):
-        #                 otype = 'MatrixF'
-        # else:
-        #     otype = node.returns.id
         self.itypes = itypes
         self.otypes = otype
     
@@ -321,6 +328,15 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     def split_list_tuples(self, arg):
         pass
 
+    
+    def wrap_with_theano_import(self, program):
+
+        theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
+        theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
+        numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
+        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import, program])
+        
+        return new_program
 
     def wrap_with_imports(self, program):
         theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
@@ -459,125 +475,3 @@ def load(path, function):
 
 
 
-
-
-
-            #if (isinstance(a.annotation, ast.List)):
-             #   if(a.annotation.elts[0].id == 'int'):
-              #      itypes.append("VectorI")
-               # if(a.annotation.elts[0].id == 'float'):
-                #    itypes.append("VectorF")
-            #elif(isinstance(a.annotation, ast.Subscript)):
-             #   if(a.annotation.value.id == 'List'):
-              #      if(isinstance(a.annotation.slice.value, ast.Name)):
-               #         if(a.annotation.slice.value.id == 'int'):
-                #            itypes.append("VectorI")
-                 #       if(a.annotation.slice.value.id == 'float'):
-                  #          itypes.append("VectorF")
-                    #This is the list of list case
-                   # elif(a.annotation.slice.value.value.id == 'List' ):
-                    #    if(a.annotation.slice.value.slice.value.id == 'int'):
-                     #       itypes.append("MatrixI")
-                      #  elif(a.annotation.slice.value.slice.value.id == 'float'):
-                       #     itypes.append("MatrixF")
-                    #This is list List of tuples case
-                    #elif(a.annotation.slice.value.value.id == 'Tuple'):
-                     #   itypes.append("MatrixD")
-                        #print(a.annotation.slice.value.slice.value)
-                        #print(a.annotation.slice.value.slice.value.elts[0].id)
-                        #print(a.annotation.slice.value.slice.value.elts[1].id)
-
-               # else:
-                #    raise TypeError("The function is not annotated correctly")
-                    #print("I Do not know this subscript")
-            #else:
-             #   itypes.append(a.annotation.id)
-                    # if(annotation == 'int'):
-            #     itypes.append("int")
-           
-            # elif(annotation == 'float'):
-            #     itypes.append("float")
-            
-            # elif(annotation == "Listint"):
-            #     itypes.append("VectorI")
-
-            # elif(annotation == 'Listfloat'):
-            #     itypes.append("VectorF")
-            
-            # elif(annotation == "ListListint"):
-            #     itypes.append("MatrixI")
-            
-            # elif(annotation == "ListListfloat"):
-            #     itypes.append("MatrixF")
-            
-            # elif(annotation.startswith("Tuple")):
-            #     self.has_tuples = True
-            #     intidx = -1
-            #     floatidx = -1
-            #     if("int" in annotation):
-            #         intidx = annotation.index("int",0)
-            #     if("float" in annotation):
-            #         floatidx = annotation.index("float",0)
-            #     if(not (floatidx  == -1) and not (intidx  == -1)):
-            #         if(intidx <= floatidx):
-            #             itypes.append("int")
-            #             itypes.append("float")
-            #         else:
-            #             itypes.append("float")
-            #             itypes.append("int")
-            #     elif(not (floatidx == -1)):
-            #         itypes.append("float")
-
-            #     elif(not (intidx == -1)):
-            #         itypes.append("int")    
-             
-            
-            # elif(annotation.startswith("ListTuple")):
-            #     self.has_list_tuples  = True
-            #     intidx = -1
-            #     floatidx = -1
-            #     if("int" in annotation):
-            #         intidx = annotation.index("int",0)
-            #     if("float" in annotation):
-            #         floatidx = annotation.index("float",0)
-            #     if(not (floatidx  == -1) and not (intidx  == -1)):
-            #         if(intidx <= floatidx):
-            #             itypes.append("VectorI")
-            #             itypes.append("VectorF")
-            #         else:
-            #             itypes.append("VectorF")
-            #             itypes.append("VectorI")
-            #     elif(not (floatidx == -1)):
-            #         itypes.append("VectorF")
-
-            #     elif(not (intidx == -1)):
-            #         itypes.append("VectorI")                        
-            
-            # else:
-            #     raise TypeError("Seems that the annotations are wrong")
-
-
-
-    # def get_next_annotation_rec(self, arg, annotation):
-        
-    #     if(isinstance(arg, ast.List)):
- 
-    #         return self.get_next_annotation_rec(arg.elts[0], annotation + "List") #annotation.elts[0].id
-
-    #     if(isinstance(arg, ast.Tuple)):
-    #         #if(((arg.elts[0].id == 'int') ) and ((arg.elts[1].id == 'float'))):
-    #          #   return annotation + "intfloat"
-    #         if(len(arg.elts) != 2):
-    #             raise TypeError("Only support for tuples with 2 types for now")
-    #         else:
-        
-    #             return self.get_next_annotation_rec(arg.elts[0], annotation + "Tuple" ) + self.get_next_annotation_rec(arg.elts[1], annotation)
-        
-    #     if(isinstance(arg, ast.Subscript)):
-   
-
-    #        return self.get_next_annotation_rec(arg.slice.value, annotation  + str(arg.value.id))
-          
-    #     else:
-    #         return (annotation + str(arg.id))
-    
