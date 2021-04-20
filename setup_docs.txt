@@ -1,0 +1,8 @@
+1) Make sure you have pandoc installed: https://pandoc.org/installing.html
+
+2) pip install sphinx nbsphinx sphinx_rtd_theme
+
+3) cd docs/
+
+4) make html
+

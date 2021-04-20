@@ -1,4 +1,4 @@
-privugger Documentation
+privugger package
 =================
 
 Subpackages
@@ -7,8 +7,8 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   privugger.Attacker
    privugger.Transformer
+   privugger.attacker
 
 Module contents
 ---------------

@@ -1,29 +1,29 @@
-privugger.Attacker package
+privugger.attacker package
 ==========================
 
 Submodules
 ----------
 
-privugger.Attacker.distributions module
+privugger.attacker.distributions module
 ---------------------------------------
 
-.. automodule:: privugger.Attacker.distributions
+.. automodule:: privugger.attacker.distributions
    :members:
    :undoc-members:
    :show-inheritance:
 
-privugger.Attacker.generators module
+privugger.attacker.generators module
 ------------------------------------
 
-.. automodule:: privugger.Attacker.generators
+.. automodule:: privugger.attacker.generators
    :members:
    :undoc-members:
    :show-inheritance:
 
-privugger.Attacker.metrics module
+privugger.attacker.metrics module
 ---------------------------------
 
-.. automodule:: privugger.Attacker.metrics
+.. automodule:: privugger.attacker.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,7 +31,7 @@ privugger.Attacker.metrics module
 Module contents
 ---------------
 
-.. automodule:: privugger.Attacker
+.. automodule:: privugger.attacker
    :members:
    :undoc-members:
    :show-inheritance:

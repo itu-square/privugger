@@ -13,11 +13,11 @@ def IntList(name, data, length=1, possible_dist=POSSIBLE_INTS, ranges=(0, np.inf
     Generates a list of probabilistics distributions to mimic all possible int values
     
     Returns: Tuple[List[Pymc3.distributions], List[Tuple[String, ]]
-    ----------
+    ----------------------------------------------------------------
     Returns a tuple containing a list of pymc3 distributions and a list containing information about each distributions
-
+    
     Parameters:
-    ----------
+    ------------
     name: String
         - The general name the list of distributions should take. In case of multiple distributions than names will have appended # within name.
     data: hypothesis.data
@@ -40,11 +40,11 @@ def FloatList(name, data, length=1, possible_dist=POSSIBLE_FLOATS, ranges=(-np.i
     Generates a list of probabilistics distributions to mimic all possible float values
     
     Returns: Tuple[List[Pymc3.distributions], List[Tuple[String, ]]
-    ----------
+    ----------------------------------------------------------------------
     Returns a tuple containing a list of pymc3 distributions and a list containing information about each distributions
 
     Parameters:
-    ----------
+    -----------
     name: String
         - Name of the distributions. In case of multiple dist the names will also have appended the #
     data: hypothesis.data
