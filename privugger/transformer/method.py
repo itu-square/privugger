@@ -25,7 +25,7 @@ def from_distributions_to_theano(input_specs):
     otype.append(TheanoToken.float_vector)
     return (itypes, otype)
 
-def infer(program, data_spec):
+def infer(data_spec, program=None):
     """
 
     :param program: the targer program for analysis
@@ -41,21 +41,24 @@ def infer(program, data_spec):
     #### ##################
     ###### Lift program ###
     #######################
-    ftp = FunctionTypeDecorator()
-    decorators = from_distributions_to_theano(input_specs)
-    #print(decorators)
-    lifted_program = ftp.lift(program, decorators)
-    lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
+    if(program == None):
+        pass
+    else:
+        ftp = FunctionTypeDecorator()
+        decorators = from_distributions_to_theano(input_specs)
+        #print(decorators)
+        lifted_program = ftp.lift(program, decorators)
+        lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
     
-    print(astor.to_source(lifted_program_w_import))
+        print(astor.to_source(lifted_program_w_import))
     
-    #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
-    #exec(c)
-    f = open("typed.py", "w")
-    f.write(astor.to_source(lifted_program_w_import))
-    f.close()
-    #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
-    import typed as t 
+        #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
+        #exec(c)
+        f = open("typed.py", "w")
+        f.write(astor.to_source(lifted_program_w_import))
+        f.close()
+        #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
+        import typed as t 
 
     with pm.Model() as model:
         
@@ -63,7 +66,11 @@ def infer(program, data_spec):
         for idx in range(num_specs):
             priors.append(input_specs[idx].pymc3_dist(var_names[idx]))
         
-        output = pm.Deterministic("output", t.meth(*priors) )
+        print(priors)
+        if(program==None):
+            pass
+        else:
+            output = pm.Deterministic("output", t.method(*priors) )
         trace = pm.sample()
         
         return trace

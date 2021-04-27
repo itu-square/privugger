@@ -68,7 +68,7 @@ class DiscreteUniform(Discrete):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
+        return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
 
 class Geometric(Discrete):
