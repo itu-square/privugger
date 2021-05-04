@@ -51,7 +51,7 @@ class Exponential(Continuous):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.Exponential(name, lam=self.lam, shape=self.num_elements)
+        return pm.Exponential(name, lam=self.lam, shape=self.num_elements)
 
 
 class Beta(Continuous):
@@ -62,4 +62,4 @@ class Beta(Continuous):
         self.num_elements=num_elements
 
         def pymc3_dist(self, name):
-            pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
+            return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
