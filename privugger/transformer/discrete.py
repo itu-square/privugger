@@ -88,7 +88,7 @@ class Constant(Discrete):
         self.val = val
 
     def pymc3_dist(self, name):
-        return pm.ConstantDist(name, val)
+        return pm.ConstantDist(name, self.val)
 
 
 

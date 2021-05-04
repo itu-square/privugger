@@ -15,13 +15,16 @@ class Dataset():
 
     """
 
-    def __init__(self, input_specs=None,var_names=None):
-        self.input_specs = input_specs
+    def __init__(self, input_specs, var_names):
 
-        if(len(input_specs) != len(var_names) or var_names is None):
+
+        if(len(input_specs) != len(var_names)):
             raise ValueError("all names must be specified")
-        self.var_names = var_names
-        
+    
+        else:
+            self.input_specs           = input_specs
+            self.var_names             = var_names
+
         #infer(program, input_specs)
 
 
