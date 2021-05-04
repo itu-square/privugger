@@ -61,5 +61,5 @@ class Beta(Continuous):
         self.beta=beta
         self.num_elements=num_elements
 
-        def pymc3_dist(self, name):
-            return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
+    def pymc3_dist(self, name):
+        return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
