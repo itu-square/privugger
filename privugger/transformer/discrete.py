@@ -19,7 +19,8 @@ __all__ = [
     "Categorical",
     "Binomial",
     "DiscreteUniform",
-    "Geometric"
+    "Geometric",
+    "Constant"
 ]
 
 
@@ -78,12 +79,16 @@ class Geometric(Discrete):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.Geometric(name, p=self.p, shape=self.num_elements)
+        return pm.Geometric(name, p=self.p, shape=self.num_elements)
 
 
+class Constant(Discrete):
+    
+    def __init__(self, val):
+        self.val = val
 
-
-
+    def pymc3_dist(self, name):
+        return pm.ConstantDist(name, val)
 
 
 
