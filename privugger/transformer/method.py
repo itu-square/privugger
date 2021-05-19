@@ -27,16 +27,25 @@ def from_distributions_to_theano(input_specs):
 
 def infer(data_spec, program=None, concat=False, stack=False):
     """
-
-    :param program: the targer program for analysis
-   
-    :param data_spec: the specifications for the input to the program
-   
-    """
     
+    Parameters
+    -----------
+    program: String with a path to the target program for analysis. Default None
+   
+    data_spec: A list of the specifications for the input to the program
+   
+    concat: Boolean indicating if the input should be concatenated into single list. Default false
+
+    stack: Boolean indicating if the input should be stacked into a matrix. Default false
+    
+    Returns
+    ----------
+    trace: Trace produced by the probabilistic programming inference 
+    """
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
     var_names      = data_spec.var_names
+    output         = data_spec.program_output
 
     #### ##################
     ###### Lift program ###
@@ -56,7 +65,7 @@ def infer(data_spec, program=None, concat=False, stack=False):
         lifted_program = ftp.lift(program, decorators)
         lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
     
-        print(astor.to_source(lifted_program_w_import))
+        #print(astor.to_source(lifted_program_w_import))
     
         #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
         #exec(c)
