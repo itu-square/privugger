@@ -21,10 +21,7 @@ def from_distributions_to_theano(input_specs):
             else:
                 itypes.append(TheanoToken.int_vector)
 
-    #if(issubclass(output["dist"], Continuous)):
-     #   otype.append("dvector")
-    #else:
-     #   otype.append("lvector")
+    #TODO: get the correct output type
     otype.append(TheanoToken.float_scalar)
     return (itypes, otype)
 
@@ -69,6 +66,10 @@ def infer(data_spec, program=None, concat=False, stack=False):
         #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
         import typed as t 
 
+    #################
+    ## Create model #
+    #################
+    
     with pm.Model() as model:
         
         priors = []
@@ -87,8 +88,9 @@ def infer(data_spec, program=None, concat=False, stack=False):
         elif(stack):
             join = []
             for p in priors:
-                join.append(p.reshape(-1,1))
-            argument = pm.stack(join, axis=1)
+                print(p)
+                join.append(p.reshape((-1,1)))
+            argument = pm.math.stack(join, axis=1)
             if(program==None):
                 pass
             else:
