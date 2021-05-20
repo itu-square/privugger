@@ -26,6 +26,28 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if(isinstance(tree[i], ast.FunctionDef)):
                 return tree[i]
         raise TypeError("did not find any function definition in program")
+    
+    
+    def get_function_return(self, body):
+        
+        for ast_node in body:
+            if(isinstance(ast_node, ast.Return)):
+                return ast_node
+        raise TypeError("did not find any Return")
+
+    def simple_method_wrap(self, program, name, args):
+        
+        arg_identifiers = []
+        for a in args.args:
+            arg_identifiers.append(a.arg)
+
+        #func_returns = self.get_function_return(program.body)
+        returns = ast.Return(value=ast.Call(args=[ast.arguments(args=arg_identifiers, defaults=[], vararg=None, kwarg=None)],func=ast.Name(id=name, ctx=ast.Load()), keywords=[]))
+        
+        new_function = ast.Module(body=[ast.FunctionDef(name='method', decorator_list=[], args=args, body=[program, returns])])
+        return new_function
+        #print(astor.to_source(new_function))
+        #print(ast.dump(new_function))
 
     def lift(self, program, decorators):
         """
@@ -41,7 +63,10 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         #print(decorators[0])
         #print(decorators[1][0])
         node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
-        return node
+        #print((tree.body[0].args))
+        wrapped_node = self.simple_method_wrap(node, tree.body[0].name, tree.body[0].args)
+        #print(astor.to_soruce(wrapped_node))
+        return wrapped_node
 
     
     def translate_type(self, p_type):
@@ -105,7 +130,8 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if(isinstance(body[i], ast.Return)):
                 return_list.append((body[i], i))
             else:
-                print(body[i])
+                pass
+                #print(body[i])
         if(len(return_list) > 0):
             return return_list
         else:

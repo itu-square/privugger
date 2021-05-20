@@ -1,4 +1,5 @@
 
+
 import pymc3 as pm
 
 """
@@ -19,7 +20,8 @@ __all__ = [
     "Categorical",
     "Binomial",
     "DiscreteUniform",
-    "Geometric"
+    "Geometric",
+    "Constant"
 ]
 
 
@@ -68,7 +70,7 @@ class DiscreteUniform(Discrete):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
+        return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
 
 class Geometric(Discrete):
@@ -78,12 +80,16 @@ class Geometric(Discrete):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        pm.Geometric(name, p=self.p, shape=self.num_elements)
+        return pm.Geometric(name, p=self.p, shape=self.num_elements)
 
 
+class Constant(Discrete):
+    
+    def __init__(self, val):
+        self.val = val
 
-
-
+    def pymc3_dist(self, name):
+        return pm.ConstantDist(name, self.val)
 
 
 
