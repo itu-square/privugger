@@ -9,18 +9,16 @@ class Dataset():
 
     def __init__(self, input_specs, var_names, program_output=None):
 
-    """
-    Dataset represents the specs about the input data 
-    
-    Parameters
-    -------------
-    input_spec: specification about the distributions of the input given as a list of distributions
-    var_names: names associated with each distribution
-    program_output: the output of the program as a standard type
-    
-    """
-
-
+        """
+        Dataset represents the specs about the input data 
+        
+        Parameters
+        -------------
+        input_spec: specification about the distributions of the input given as a list of distributions
+        var_names: names associated with each distribution
+        program_output: the output of the program as a standard type
+        
+        """
         if(len(input_specs) != len(var_names)):
             raise ValueError("There must be the same number of inputs and names")
     
@@ -34,16 +32,15 @@ class Dataset():
 class Float():
     
     def __init__(self, dist= None,  name=None):
-    """
-    Float represents a floating point value drawn from a spcified distribution
+        """
+        Float represents a floating point value drawn from a spcified distribution
     
-    Parameters
-    -----------
-    dist: distribution 
-    name: name associated with distrbution
-
-    """
-
+        Parameters
+        -----------
+        dist: distribution 
+        name: name associated with distrbution
+        
+        """
         self.dist=dist
         if(name is None):
             raise ValueError("name must be specified")
@@ -54,16 +51,15 @@ class Float():
 class Int():
 
     def __init__(self, dist=None,  name=None):
-    """
-    Int represents an integer value drawn from a spcified distribution
+        """
+        Int represents an integer value drawn from a spcified distribution
 
-    Parameters
-    -----------
-    dist: distribution 
-    name: name associated with distrbution
+        Parameters
+        -----------
+        dist: distribution 
+        name: name associated with distrbution
 
-    """
-
+        """
         self.dist = dist
         if(name is None):
             raise ValueError("name must be specified")
