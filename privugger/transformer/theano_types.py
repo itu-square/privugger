@@ -7,3 +7,8 @@ class TheanoToken():
     float_scalar = "float"
     int_matrix = "MatrixI"
     float_matrix = "MatrixD"
+    single_element_float_vector = 'Single_element_VectorF'
+    single_element_int_vector = 'Single_element_VectorI'
+
+
+    

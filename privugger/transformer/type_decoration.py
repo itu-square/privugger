@@ -102,6 +102,12 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         elif(p_type=='MatrixD'):
             return 'dmatrix'
 
+        elif(p_type=='Single_element_VectorF'):
+            return 'TensorType(\'float64\', (True,))'
+
+        elif(p_type=='Single_element_VectorI'):
+            return 'TensorType(\'int64\', (True,))'
+        
         else:
             raise TypeError("Cannot translate type to any theano type")
 
