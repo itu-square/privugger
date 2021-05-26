@@ -20,12 +20,16 @@ def from_distributions_to_theano(input_specs, output):
     else:
         for s in input_specs:
             if(issubclass(s.__class__, Continuous)):
-                if(s.num_elements == 1):
+                if(s.num_elements == -1):
+                    itypes.append(TheanoToken.float_scalar)
+                elif(s.num_elements==1):
                     itypes.append(TheanoToken.single_element_float_vector)
                 else:
                     itypes.append(TheanoToken.float_vector)
             else:
-                if(s.num_elements == 1):
+                if(s.num_elements == -1):
+                    itypes.append(TheanoToken.int_scalar)
+                elif(s.num_elements==1):
                     itypes.append(TheanoToken.single_element_int_vector)
                 else:
                     itypes.append(TheanoToken.int_vector)
