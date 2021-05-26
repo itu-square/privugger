@@ -24,20 +24,23 @@ __all__ = [
     "Constant"
 ]
 
-
+#NOTE the convention is that num_elements -1 means that it is not set 
 class Bernoulli(Discrete):
-    def __init__(self, p=0.5, num_elements=2):
+    def __init__(self, p=0.5, num_elements=-1):
         self.p = p
         self.num_elements=num_elements
     
     def pymc3_dist(self, name):
-        return pm.Bernoulli(name, p=self.p, shape=self.num_elements)
+        if(self.num_elements==-1):
+            return pm.Bernoulli(name, p=self.p)
+        else:
+            return pm.Bernoulli(name, p=self.p, shape=self.num_elements)
 
 
 
 class Categorical(Discrete):
     
-    def __init__(self, p=None, num_elements=2):
+    def __init__(self, p=None, num_elements=-1):
         
         if (p==None):
             raise TypeError("please specify p")
@@ -47,40 +50,52 @@ class Categorical(Discrete):
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        return pm.Categorical(name, p=self.p, shape=self.num_elements)
+        if(self.num_elements==-1):
+            return pm.Categorical(name, p=self.p)
+        else:
+            return pm.Categorical(name, p=self.p, shape=self.num_elements)
 
 
 
 class Binomial(Discrete):
     
-    def __init__(self, n=2, p=0.5, num_elements=2):
+    def __init__(self, n=2, p=0.5, num_elements=-1):
         self.n=n
         self.p=p
         self.num_elements=num_elements
     
     def pymc3_dist(self, name):
-        return pm.Binomial(name, n=self.n, p=self.p, shape=self.num_elements)
+        if(self.num_elements==-1):
+            return pm.Binomial(name, n=self.n, p=self.p)
+        else:
+            return pm.Binomial(name, n=self.n, p=self.p, shape=self.num_elements)
 
 
 
 class DiscreteUniform(Discrete):
-    def __init__(self,lower=0, upper=1, num_elements=2):
+    def __init__(self,lower=0, upper=1, num_elements=-1):
         self.lower = lower
         self.upper = upper
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
+        if(self.num_elements==-1):
+            return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper)
+        else:
+            return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
 
 class Geometric(Discrete):
     
-    def __init__(self, p=0.5, num_elements=2):
+    def __init__(self, p=0.5, num_elements=-1):
         self.p=p
         self.num_elements=num_elements
 
     def pymc3_dist(self, name):
-        return pm.Geometric(name, p=self.p, shape=self.num_elements)
+        if(self.num_elements==-1):
+            return pm.Geometric(name, p=self.p)
+        else:
+            return pm.Geometric(name, p=self.p, shape=self.num_elements)
 
 
 class Constant(Discrete):
