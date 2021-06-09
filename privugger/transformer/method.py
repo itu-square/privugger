@@ -50,7 +50,9 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, stack=False):
+def infer(data_spec, program_output,
+          program=None, cores=2 ,
+          chains=2, draws=500, concat=False, stack=False):
     """
     
     Parameters
@@ -58,6 +60,8 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
     
     data_spec: A list of the specifications for the input to the program
     
+    program_output: The ouput of the program as a normal type
+
     program: String with a path to the target program for analysis. Default None
    
     cores: Int number of cores to use for sampling. Default 500
@@ -77,7 +81,8 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
     var_names      = data_spec.var_names
-    output         = data_spec.program_output
+    output         = program_output
+
     
     #### ##################
     ###### Lift program ###

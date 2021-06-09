@@ -1,7 +1,6 @@
 import ast
 import astor
 import sys
-import argparse
 import privugger.transformer.annotation_types as at
 from privugger.transformer.theano_types import TheanoToken
 
@@ -58,14 +57,20 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         """
         tree = ast.parse(open(program).read())
-        #print(ast.dump(tree))
+        
         function_def = self.get_function_def_ast(tree.body)
-        #print(decorators[0])
-        #print(decorators[1][0])
+        
         node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
-        #print((tree.body[0].args))
-        wrapped_node = self.simple_method_wrap(node, tree.body[0].name, tree.body[0].args)
-        #print(astor.to_soruce(wrapped_node))
+
+        if(isinstance(tree.body[0], ast.Import)):
+            imports = tree.body[0]
+            wrapped_node = self.simple_method_wrap(node, tree.body[1].name, tree.body[1].args)
+            wrapped_node.body.insert(0, imports)
+            
+            
+        else:
+            wrapped_node = self.simple_method_wrap(node, tree.body[0].name, tree.body[0].args)
+        
         return wrapped_node
 
     
