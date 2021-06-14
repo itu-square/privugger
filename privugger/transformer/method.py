@@ -19,6 +19,7 @@ def from_distributions_to_theano(input_specs, output):
         itypes.append(TheanoToken.float_matrix)
     else:
         for s in input_specs:
+            
             if(issubclass(s.__class__, Continuous)):
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.float_scalar)
@@ -26,6 +27,18 @@ def from_distributions_to_theano(input_specs, output):
                     itypes.append(TheanoToken.single_element_float_vector)
                 else:
                     itypes.append(TheanoToken.float_vector)
+
+            #NOTE Tuple means that we are concatenating the distributions
+            elif(s.__class__ is tuple):
+
+                if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
+                    itypes.append(TheanoToken.float_vector)
+
+                elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
+                    itypes.append(TheanoToken.int_vector)
+                else:
+                    raise TypeError("When concatenating the distributions must have the same domain")
+                
             else:
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
@@ -34,7 +47,7 @@ def from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.int_vector)
 
-    #TODO: get the correct output type
+    #NOTE: THis gets the correct output type
     
     if(type(output).__name__ ==  "type"):
         if(output.__name__ == "Float"):
@@ -50,9 +63,19 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
+
+def concatenate(distribution_a, distribution_b, axis=0):
+
+    return ((distribution_a, distribution_b), axis)
+
+
+#def stack(distributions, axis=0):
+
+#    return pm.math.stack([*distributions], axis=axis)
+
 def infer(data_spec, program_output,
           program=None, cores=2 ,
-          chains=2, draws=500, concat=False, stack=False):
+          chains=2, draws=500):
     """
     
     Parameters
@@ -70,10 +93,6 @@ def infer(data_spec, program_output,
 
     draws: Int number of draws. Default 2
 
-    concat: Boolean indicating if the input should be concatenated into single list. Default false
-
-    stack: Boolean indicating if the input should be stacked into a matrix. Default false
-    
     Returns
     ----------
     trace: Trace produced by the probabilistic programming inference 
@@ -87,19 +106,17 @@ def infer(data_spec, program_output,
     #### ##################
     ###### Lift program ###
     #######################
-    if(program == None):
-        pass
-    else:
+    if(program is not  None):
         ftp = FunctionTypeDecorator()
-        if(concat):
+        #if(concat):
             #TODO do this correct
             #decorators = from_distributions_to_theano([input_specs[0]])
-            decorators = from_distributions_to_theano(None, output)
-        elif(stack):
+         #   decorators = from_distributions_to_theano(None, output)
+        #elif(stack):
             #super hacky but None means that the input is a matrix of floats
-            decorators = from_distributions_to_theano(None, output)
-        else:
-            decorators = from_distributions_to_theano(input_specs, output)
+           # decorators = from_distributions_to_theano(None, output)
+        #else:
+        decorators = from_distributions_to_theano(input_specs, output)
         #print(decorators)
         lifted_program = ftp.lift(program, decorators)
         lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
@@ -122,35 +139,24 @@ def infer(data_spec, program_output,
         
         priors = []
         for idx in range(num_specs):
-            priors.append(input_specs[idx].pymc3_dist(var_names[idx]))
+            prior = input_specs[idx]
+            
+             #NOTE Tuple means that we are concatenating the distributions
+            if(prior.__class__ is tuple):
+                dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
+                dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
+                axis = prior[1]
+                priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+            else:
+                priors.append(prior.pymc3_dist(var_names[idx]))
         
         print(priors)
-        if(concat):
-            argument = pm.math.stack([*priors], axis=0)
-            print(argument[0])
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(argument) )
 
 
-        elif(stack):
-            join = []
-            for p in priors:
-                print(p)
-                join.append(p.reshape((-1,1)))
-            argument = pm.math.stack(join, axis=1)
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(argument) )
+      
+        if(program is not None):
+            output = pm.Deterministic("output", t.method(*priors) )
 
-        
-        else:
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(*priors) )
         trace = pm.sample(draws=draws, chains=chains, cores=cores)
         
         return trace
