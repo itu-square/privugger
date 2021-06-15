@@ -17,30 +17,23 @@ import unittest
 class TestProbabilityGenerators(unittest.TestCase):
     program = "unit-test/average_age.py"
 
-    def test_normal_gives_normal(self):
-        """
-        Test that the mean of the normal actually is close to the mean given
-        A small epsilon of 1% is used to argue for incosistency
-        """
-        mean = 10
-        n = Normal(mu=mean, std=3.5)
-    
-        # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [n, n],
-                        var_names   = ["age", "height"],
-                        program_output = Float)
+    def create_file(self, f):
+    ## SAVE TO FILE
+        res = "".join(inspect.getsourcelines(f)[0])
+        res = res.strip()
+        if "lambda" in res:
+            res = res[len("self.create_file("):-1]
+            res = res.strip("\\n")
+            if len(res.split("=")) > 1 and "lambda" in res.split("=")[1]:
+                res = res[res.find("=")+1:]
+        if "lambda" == res[:6]:
+            form = res.strip().split(':')
+            res = f"def fun({form[0][6:]}): \n  return {form[1]}"
+        elif "def" != res[:3]:
+            raise TypeError("Method has to be either lambda of def type")
+        with open("temp.py", "w") as file:
+            file.write(res)
 
-        #Program
-
-        # Call infer
-        trace = infer(ds,  self.program, draws= 10000, cores=1)
-
-        eps = 1/100*(mean)
-        accuracy_age = mean+eps >= np.mean(trace["age"]) >= mean-eps
-        accuracy_height = mean+eps >= np.mean(trace["height"]) >= mean-eps
-
-        self.assertTrue(accuracy_age)
-        self.assertTrue(accuracy_height)
 
     def test_sampling_samples_correct_order(self):
         """
@@ -56,11 +49,81 @@ class TestProbabilityGenerators(unittest.TestCase):
                         program_output = Float)
 
         #Program
+        # self.create_file(lambda a,b: a+b)
+
 
         # Call infer
-        trace = infer(ds, self.program, draws= 1000, cores=1)
+        trace = infer(ds, "unit-test/addition.py", draws= 1000, cores=1)
         for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
             self.assertEqual(a+b, o)
+        # os.remove("temp.py")
+
+    def test_multi_samples_correct_order(self):
+        """
+        Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
+        """
+        a = Normal(mu=10, std=3.5)
+        b = Normal(mu=40, std=3.5)
+
+    
+        # Create dataset and specify program output
+        ds = pvds.Dataset(input_specs = [a,b],
+                        var_names   = ["age", "height"],
+                        program_output = Float)
+
+        #Program
+        # self.create_file(lambda a,b: a*b)
+
+
+        # Call infer
+        trace = infer(ds, "unit-test/multiplication.py", draws= 1000, cores=1)
+        for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
+            self.assertEqual(a*b, o)
+        # os.remove("temp.py")
+
+    def test_uniform_cutoff(self):
+        """
+        Ensures that when sampling for continuous uniform, no value exceeds domain
+        """
+        a = Uniform(10,50)
+
+    
+        # Create dataset and specify program output
+        ds = pvds.Dataset(input_specs = [a],
+                        var_names   = ["age"],
+                        program_output = Float)
+
+        #Program
+        # self.create_file(lambda a: a)
+
+
+        # Call infer
+        trace = infer(ds,"unit-test/identity.py", draws= 1000, cores=1)
+        for ai, oi in zip(trace["age"], trace["output"]):
+            self.assertTrue(50 >= ai >= 10)
+            self.assertTrue(50 >= oi >= 10)
+
+    def test_discrete_uniform_cutoff(self):
+        """
+        Ensures that when sampling for discrete uniform, no value exceeds domain
+        """
+        a = DiscreteUniform(10,50)
+
+    
+        # Create dataset and specify program output
+        ds = pvds.Dataset(input_specs = [a],
+                        var_names   = ["age"],
+                        program_output = int)
+
+        #Program
+        # self.create_file(lambda a: a)
+
+
+        # Call infer
+        trace = infer(ds, "unit-test/identity.py", draws= 1000, cores=1)
+        for ai, oi in zip(trace["age"], trace["output"]):
+            self.assertTrue(50 >= ai >= 10)
+            self.assertTrue(50 >= oi >= 10)
 
     def test_k_samples_gives_k_samples(self):
         """
@@ -70,20 +133,20 @@ class TestProbabilityGenerators(unittest.TestCase):
         
         # Specify distributions
         age  = Normal(mu=55.2, std=3.5)
-        height = Normal(mu=55.2, std=3.5)
 
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [age, height],
-                        var_names   = ["age", "height"],
+        ds = pvds.Dataset(input_specs = [age],
+                        var_names   = ["age"],
                         program_output = Float)
 
         #Program
 
         # Call infer
-        trace = infer(ds, self.program, draws= sample_size, cores=1, chains=1)
+        trace = infer(ds, "unit-test/identity.py", draws= sample_size, cores=1, chains=1)
 
         self.assertEqual(len(trace["age"]), sample_size)
-        self.assertEqual(len(trace["height"]), sample_size)
+        self.assertEqual(len(trace["output"]), sample_size)
+
 
 if __name__ == '__main__':
     unittest.main()
