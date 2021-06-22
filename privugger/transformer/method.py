@@ -47,8 +47,7 @@ def from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.int_vector)
 
-    #NOTE: THis gets the correct output type
-    
+    #NOTE: This gets the output type
     if(type(output).__name__ ==  "type"):
         if(output.__name__ == "Float"):
            otype.append(TheanoToken.float_scalar)
@@ -65,13 +64,12 @@ def from_distributions_to_theano(input_specs, output):
 
 
 def concatenate(distribution_a, distribution_b, axis=0):
-
+    #NOTE we just return a tuple and then actually concat later
     return ((distribution_a, distribution_b), axis)
 
 
-#def stack(distributions, axis=0):
-
-#    return pm.math.stack([*distributions], axis=axis)
+def stack(distributions, axis=0):
+    return pm.math.stack([*distributions], axis=axis)
 
 def infer(data_spec, program_output,
           program=None, cores=2 ,
@@ -108,27 +106,18 @@ def infer(data_spec, program_output,
     #######################
     if(program is not  None):
         ftp = FunctionTypeDecorator()
-        #if(concat):
-            #TODO do this correct
-            #decorators = from_distributions_to_theano([input_specs[0]])
-         #   decorators = from_distributions_to_theano(None, output)
-        #elif(stack):
-            #super hacky but None means that the input is a matrix of floats
-           # decorators = from_distributions_to_theano(None, output)
-        #else:
         decorators = from_distributions_to_theano(input_specs, output)
-        #print(decorators)
+        
         lifted_program = ftp.lift(program, decorators)
         lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
     
         print(astor.to_source(lifted_program_w_import))
     
-        #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
-        #exec(c)
+        
         f = open("typed.py", "w")
         f.write(astor.to_source(lifted_program_w_import))
         f.close()
-        #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
+        
         import typed as t 
 
     #################

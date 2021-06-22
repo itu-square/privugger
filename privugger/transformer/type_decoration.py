@@ -1,6 +1,8 @@
 import ast
 import astor
 import sys
+import inspect
+import os
 import privugger.transformer.annotation_types as at
 from privugger.transformer.theano_types import TheanoToken
 
@@ -56,7 +58,51 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         :param decorators: list of the decorator types
         
         """
-        tree = ast.parse(open(program).read())
+
+        #NOTE This is for when the program is given as a path to the file
+        if(isinstance(program, str)):
+            tree = ast.parse(open(program).read())
+
+        else:
+            res = "".join(inspect.getsourcelines(program)[0])
+            if "lambda" in res:
+                res = res.replace(" ", "")
+                start = res.find("lambda")
+                end_draws = res.find("draws")
+                end_chains = res.find("chains")
+                end_cores = res.find("cores")
+
+                #NOTE this is when we only use the default values
+                if(end_draws == -1 and end_chains==-1 and end_cores == -1):
+
+                    #TODO There are bugs if the program is defined elsewhere and ends with ")"
+                    end = len(res)
+                    
+                    res = res[start:end-1].strip("\\n")
+
+                else:
+                    values = [end_draws, end_chains, end_cores]
+                    #NOTE filter all the values that are not set 
+                    positive_values = list(filter(lambda x: x != -1, values))
+                    end = min(positive_values)
+                    res = res[start:end-1].strip("\\n")
+                
+            if("lambda" == res[:6]):
+                form = res.strip().split(":")
+                res = f"def function({form[0][6:]}): \n return {form[1]}"
+
+            elif("def" != res[:3]):
+                raise TypeError("The program needs to be a path to a file, a lambda or a function")
+
+            with open("temp.py", "w") as file:
+                file.write(res)
+            tree = ast.parse(open("temp.py").read())
+
+            os.remove("temp.py")
+        
+        #if("lambda")
+        
+        
         
         function_def = self.get_function_def_ast(tree.body)
         
