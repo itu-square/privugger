@@ -28,17 +28,24 @@ def from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.float_vector)
 
-            #NOTE Tuple means that we are concatenating the distributions
+            #NOTE Tuple means that we are concatenating or stacking the the distributions
             elif(s.__class__ is tuple):
-
-                if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
-                    itypes.append(TheanoToken.float_vector)
-
-                elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
-                    itypes.append(TheanoToken.int_vector)
-                else:
-                    raise TypeError("When concatenating the distributions must have the same domain")
+                print(s[1][1])
                 
+                if(s[1][1] == "concat"):
+                    if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
+                        itypes.append(TheanoToken.float_vector)
+
+                    elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
+                        itypes.append(TheanoToken.int_vector)
+                    else:
+                        raise TypeError("When concatenating the distributions must have the same domain")
+                else:
+                    #NOTE we are assuming that all of the distributions to be stacked have the same domain
+                     if(issubclass(s[0][0].__class__, Continuous)):
+                        itypes.append(TheanoToken.float_matrix)
+                     else:
+                         itypes.append(TheanoToken.int_matrix)
             else:
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
@@ -64,12 +71,15 @@ def from_distributions_to_theano(input_specs, output):
 
 
 def concatenate(distribution_a, distribution_b, axis=0):
-    #NOTE we just return a tuple and then actually concat later
-    return ((distribution_a, distribution_b), axis)
+    #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
+    #if we are concatenating or stacking
+    return ((distribution_a, distribution_b), (axis, "concat"))
 
 
 def stack(distributions, axis=0):
-    return pm.math.stack([*distributions], axis=axis)
+    #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
+    #if we are concatenating or stacking
+    return (distributions, (axis, "stack"))
 
 def infer(data_spec, program_output,
           program=None, cores=2 ,
@@ -130,12 +140,20 @@ def infer(data_spec, program_output,
         for idx in range(num_specs):
             prior = input_specs[idx]
             
-             #NOTE Tuple means that we are concatenating the distributions
+             #NOTE Tuple means that we are concatenating/stacking the distributions
             if(prior.__class__ is tuple):
-                dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
-                dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
-                axis = prior[1]
-                priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+                if(prior[1][1] == "concat"):
+                    
+                    dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
+                    dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
+                    axis = prior[1][0]
+                    priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+                else:
+                    stacked = []
+                    for i in range(len(prior[0])):
+                        stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
+                    axis = prior[1][0]
+                    priors.append( pm.math.stack(stacked, axis=axis ))
             else:
                 priors.append(prior.pymc3_dist(var_names[idx]))
         
