@@ -7,7 +7,7 @@ def program(pandas):
 
 class Dataset():
 
-    def __init__(self, input_specs, var_names, program_output=None):
+    def __init__(self, input_specs, var_names):
 
         """
         Dataset represents the specs about the input data 
@@ -25,7 +25,7 @@ class Dataset():
         else:
             self.input_specs           = input_specs
             self.var_names             = var_names
-            self.program_output        = program_output
+
 
 
     
