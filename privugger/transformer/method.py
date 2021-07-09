@@ -50,7 +50,7 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, stack=False):
+def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, stack=False, method="pymc3"):
     """
     
     Parameters
@@ -78,7 +78,6 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
     input_specs    = data_spec.input_specs
     var_names      = data_spec.var_names
     output         = data_spec.program_output
-    
     #### ##################
     ###### Lift program ###
     #######################
@@ -99,56 +98,88 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
         lifted_program = ftp.lift(program, decorators)
         lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
     
-        print(astor.to_source(lifted_program_w_import))
+        #print(astor.to_source(lifted_program_w_import))
     
         #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
         #exec(c)
-        f = open("typed.py", "w")
-        f.write(astor.to_source(lifted_program_w_import))
-        f.close()
-        #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
-        import typed as t 
+
 
     #################
     ## Create model #
     #################
     
-    with pm.Model() as model:
+    if method == "pymc3":
+        f = open("typed.py", "w")
+        f.write(astor.to_source(lifted_program_w_import))
+        f.close()
+        #res = exec(astor.to_source(lifted_program_w_import), {"arguments": a, "arguments": b})
+        import typed as t 
+        # Change if pymc3
+        with pm.Model() as model:
+            
+            priors = []
+            for idx in range(num_specs):
+                priors.append(input_specs[idx].pymc3_dist(var_names[idx]))
+            
+            print(priors)
+            if(concat):
+                argument = pm.math.stack([*priors], axis=0)
+                print(argument[0])
+                if(program==None):
+                    pass
+                else:
+                    output = pm.Deterministic("output", t.method(argument) )
+
+
+            elif(stack):
+                join = []
+                for p in priors:
+                    print(p)
+                    join.append(p.reshape((-1,1)))
+                argument = pm.math.stack(join, axis=1)
+                if(program==None):
+                    pass
+                else:
+                    output = pm.Deterministic("output", t.method(argument) )
+
+            
+            else:
+                if(program==None):
+                    pass
+                else:
+                    output = pm.Deterministic("output", t.method(*priors) )
+            trace = pm.sample(draws=draws, chains=chains, cores=cores)
+            
+            return trace
+    elif method == "scipy":
+        import re
+        filter = "@theano\.compile\.ops\.as_op.*\n"
+        pymProgram = astor.to_source(lifted_program_w_import)
+        results = re.findall(filter, pymProgram)
+
+        trimmed = pymProgram.replace(results[0],"\n")
+
+        f = open("typed.py", "w")
+        f.write(trimmed)
+        f.close()
+        import typed as t 
         
         priors = []
+        trace = {}
         for idx in range(num_specs):
-            priors.append(input_specs[idx].pymc3_dist(var_names[idx]))
-        
-        print(priors)
-        if(concat):
-            argument = pm.math.stack([*priors], axis=0)
-            print(argument[0])
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(argument) )
-
-
-        elif(stack):
-            join = []
-            for p in priors:
-                print(p)
-                join.append(p.reshape((-1,1)))
-            argument = pm.math.stack(join, axis=1)
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(argument) )
-
-        
-        else:
-            if(program==None):
-                pass
-            else:
-                output = pm.Deterministic("output", t.method(*priors) )
-        trace = pm.sample(draws=draws, chains=chains, cores=cores)
-        
+            name, dist = input_specs[idx].scipy_dist(var_names[idx])
+            dist = dist(draws)
+            priors.append(dist)
+            trace[name] = dist
+        outputs = []
+        for pi in list(zip(*priors)):
+            if len(pi) == 1:
+                pi = pi[0]
+            outputs.append(t.method(pi))
+        trace["output"] = outputs
         return trace
+    else:
+        raise TypeError("Unsupported probabilistic framework")
 
 
     
