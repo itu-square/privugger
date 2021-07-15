@@ -2,9 +2,15 @@ import os
 import sys
 import inspect
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
+
+#Use this on Windows
+#currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+#parentdir = os.path.dirname(currentdir)
+#sys.path.insert(0, parentdir)
+
+
+#It appears that this is the way to do it when on Linux
+sys.path.append(os.path.join(".."))
 
 import privugger.transformer.datastructures as pvds
 from privugger.transformer.discrete import *
@@ -15,7 +21,7 @@ from privugger.measures.mutual_information import *
 import unittest
 
 class TestProbabilityGenerators(unittest.TestCase):
-    program = "unit-test/average_age.py"
+    program = "average_age.py"
 
     def create_file(self, f):
     ## SAVE TO FILE
@@ -45,15 +51,14 @@ class TestProbabilityGenerators(unittest.TestCase):
     
         # Create dataset and specify program output
         ds = pvds.Dataset(input_specs = [a,b],
-                        var_names   = ["age", "height"],
-                        program_output = Float)
+                        var_names   = ["age", "height"])
 
         #Program
         # self.create_file(lambda a,b: a+b)
 
 
         # Call infer
-        trace = infer(ds, "unit-test/addition.py", draws= 1000, cores=1)
+        trace = infer(ds, Float, "addition.py", draws= 1000, cores=1)
         for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
             self.assertEqual(a+b, o)
         # os.remove("temp.py")
@@ -68,15 +73,14 @@ class TestProbabilityGenerators(unittest.TestCase):
     
         # Create dataset and specify program output
         ds = pvds.Dataset(input_specs = [a,b],
-                        var_names   = ["age", "height"],
-                        program_output = Float)
+                        var_names   = ["age", "height"])
 
         #Program
         # self.create_file(lambda a,b: a*b)
 
 
         # Call infer
-        trace = infer(ds, "unit-test/multiplication.py", draws= 1000, cores=1)
+        trace = infer(ds, Float, "multiplication.py", draws= 1000, cores=1)
         for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
             self.assertEqual(a*b, o)
         # os.remove("temp.py")
@@ -90,15 +94,14 @@ class TestProbabilityGenerators(unittest.TestCase):
     
         # Create dataset and specify program output
         ds = pvds.Dataset(input_specs = [a],
-                        var_names   = ["age"],
-                        program_output = Float)
+                        var_names   = ["age"])
 
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
-        trace = infer(ds,"unit-test/identity.py", draws= 1000, cores=1)
+        trace = infer(ds,Float, "identity.py", draws= 1000, cores=1)
         for ai, oi in zip(trace["age"], trace["output"]):
             self.assertTrue(50 >= ai >= 10)
             self.assertTrue(50 >= oi >= 10)
@@ -112,15 +115,14 @@ class TestProbabilityGenerators(unittest.TestCase):
     
         # Create dataset and specify program output
         ds = pvds.Dataset(input_specs = [a],
-                        var_names   = ["age"],
-                        program_output = int)
+                        var_names   = ["age"])
 
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
-        trace = infer(ds, "unit-test/identity.py", draws= 1000, cores=1)
+        trace = infer(ds,Int, "identity.py", draws= 1000, cores=1)
         for ai, oi in zip(trace["age"], trace["output"]):
             self.assertTrue(50 >= ai >= 10)
             self.assertTrue(50 >= oi >= 10)
@@ -136,13 +138,12 @@ class TestProbabilityGenerators(unittest.TestCase):
 
         # Create dataset and specify program output
         ds = pvds.Dataset(input_specs = [age],
-                        var_names   = ["age"],
-                        program_output = Float)
+                        var_names   = ["age"])
 
         #Program
 
         # Call infer
-        trace = infer(ds, "unit-test/identity.py", draws= sample_size, cores=1, chains=1)
+        trace = infer(ds, Float, "identity.py", draws= sample_size, cores=1, chains=1)
 
         self.assertEqual(len(trace["age"]), sample_size)
         self.assertEqual(len(trace["output"]), sample_size)

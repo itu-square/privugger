@@ -8,6 +8,8 @@ from privugger.transformer.program_output import *
 import astor
 import pymc3 as pm
 import theano.tensor as tt
+import os
+import importlib
 
 def from_distributions_to_theano(input_specs, output):
     
@@ -128,7 +130,8 @@ def infer(data_spec, program_output,
         f.write(astor.to_source(lifted_program_w_import))
         f.close()
         
-        import typed as t 
+        import typed as t
+        importlib.reload(t)
 
     #################
     ## Create model #
@@ -165,7 +168,9 @@ def infer(data_spec, program_output,
             output = pm.Deterministic("output", t.method(*priors) )
 
         trace = pm.sample(draws=draws, chains=chains, cores=cores)
-        
+        #f.truncate()
+        #f.close()
+        #os.remove("typed.py")
         return trace
 
 
