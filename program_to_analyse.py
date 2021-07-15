@@ -1,2 +1,2 @@
-def name(age):
-    return age
+def name(age,name):
+    return age+name

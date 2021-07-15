@@ -14,14 +14,14 @@ import pymc3 as pm
 
 # Specify distributions
 age  = Bernoulli(p=0.5)
+name = Normal(mu=10,std=2)
 
 program = "program_to_analyse.py"
 # Create dataset and specify program output
 # For now output type can be: Int, Float, List(Float), List(Int)
-ds = pvds.Dataset(input_specs = [age],
-                  var_names   = ["age"],
-                  program_output = Int)
+ds = pvds.Dataset(input_specs = [age, name],
+                  var_names   = ["age", "name"])
 
 # Call infer
-trace = infer(ds,  program, draws= 1000, cores=4, method="scipy")
+trace = infer(ds,  program=program, draws= 1000, cores=4, method="scipy", program_output = Int)
 print(trace)
