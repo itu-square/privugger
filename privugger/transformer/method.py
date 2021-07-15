@@ -153,15 +153,16 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
             return trace
     elif method == "scipy":
         import re
-        filter = "@theano\.compile\.ops\.as_op.*\n"
-        pymProgram = astor.to_source(lifted_program_w_import)
-        results = re.findall(filter, pymProgram)
-
-        trimmed = pymProgram.replace(results[0],"\n")
-
-        f = open("typed.py", "w")
-        f.write(trimmed)
+        f = open(program, "r")
+        new = open("typed.py", "w")
+        for l in f.readlines():
+            res = re.findall("def [a-zA-Z]+\(", l)
+            if len(res):
+                new.write(re.sub("def [a-zA-Z]+\(", "def method(", l))
+            else:
+                new.write(l)
         f.close()
+        new.close()
         import typed as t 
         
         priors = []
@@ -175,7 +176,7 @@ def infer(data_spec,program=None, cores=2 , chains=2, draws=500, concat=False, s
         for pi in list(zip(*priors)):
             if len(pi) == 1:
                 pi = pi[0]
-            outputs.append(t.method(pi))
+            outputs.append(t.method(*pi))
         trace["output"] = outputs
         return trace
     else:

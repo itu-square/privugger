@@ -1,4 +1,5 @@
 import pymc3 as pm
+from scipy import stats as st
 
 """
 By specifying our own interface for distributions we could ideally hide which specific backend is used to model the distributions
@@ -10,6 +11,8 @@ class Continuous():
     def pymc3_dist(self, name):
         return None
 
+    def scipy_dist(self, name):
+        return None
 
 __all__ = [
     "Uniform",
@@ -33,6 +36,10 @@ class Uniform(Continuous):
         else:
             return pm.Uniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.uniform(self.lower, self.upper-self.lower).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.uniform(self.lower, self.upper-self.lower).rvs((self.num_elements, siz)))
+        return name,dist
+
 
 
 class Normal(Continuous):
@@ -47,7 +54,10 @@ class Normal(Continuous):
             return pm.Normal(name, mu=self.mu, sigma=self.std)
         else:
             return pm.Normal(name, mu=self.mu, sigma=self.std, shape=self.num_elements)
-    
+
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.norm(self.mu, self.std).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.norm(self.mu, self.std).rvs((self.num_elements, siz)))
+        return name,dist
 
 
 class Exponential(Continuous):
@@ -62,6 +72,10 @@ class Exponential(Continuous):
         else:
             return pm.Exponential(name, lam=self.lam, shape=self.num_elements)
 
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.expon(self.lam).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.expon(self.lam).rvs((self.num_elements, siz)))
+        return name,dist
+
 
 class Beta(Continuous):
     
@@ -75,3 +89,7 @@ class Beta(Continuous):
             return pm.Beta(name, alpha=self.alpha, beta=self.beta)
         else:
             return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
+
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.beta(self.alpha,self.beta).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.beta(self.alpha,self.beta).rvs((self.num_elements, siz)))
+        return name,dist

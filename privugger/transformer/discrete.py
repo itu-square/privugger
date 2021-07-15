@@ -108,6 +108,10 @@ class Geometric(Discrete):
             return pm.Geometric(name, p=self.p)
         else:
             return pm.Geometric(name, p=self.p, shape=self.num_elements)
+        
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.geom(self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.geom(self.p).rvs((self.num_elements, siz)))
+        return name, dist
 
 
 class Constant(Discrete):
@@ -117,6 +121,9 @@ class Constant(Discrete):
 
     def pymc3_dist(self, name):
         return pm.ConstantDist(name, self.val)
+    
+    def scipy_dist(self, name):
+        return lambda siz: np.array([self.val for _ in range(siz)])
 
 
 
