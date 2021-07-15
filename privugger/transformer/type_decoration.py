@@ -61,7 +61,9 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
         #NOTE This is for when the program is given as a path to the file
         if(isinstance(program, str)):
-            tree = ast.parse(open(program).read())
+            file = open(program)
+            tree = ast.parse(file.read())
+            file.close()
 
         else:
             res = "".join(inspect.getsourcelines(program)[0])
