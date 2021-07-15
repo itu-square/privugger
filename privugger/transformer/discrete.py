@@ -62,6 +62,10 @@ class Categorical(Discrete):
         else:
             return pm.Categorical(name, p=self.p, shape=self.num_elements)
 
+    def scipy_dist(self, name):
+        theta = self.p
+        dist = (lambda siz : st.rv_discrete(values=(range(len(theta)), theta)).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.rv_discrete(values=(range(len(theta)), theta)).rvs((self.num_elements, siz)))
+        return name, dist
 
 
 class Binomial(Discrete):
