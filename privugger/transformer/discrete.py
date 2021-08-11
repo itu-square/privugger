@@ -1,6 +1,7 @@
 
 
 import pymc3 as pm
+from scipy import stats as st
 
 """
 By specifying our own interface for distributions we could ideally hide which specific backend is used to model the distributions
@@ -12,6 +13,8 @@ class Discrete():
     def pymc3_dist(self, name):
         return None
 
+    def scipy_dist(self, name):
+        return None
 
 
 __all__ = [
@@ -35,6 +38,10 @@ class Bernoulli(Discrete):
             return pm.Bernoulli(name, p=self.p)
         else:
             return pm.Bernoulli(name, p=self.p, shape=self.num_elements)
+    
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.bernoulli(p=self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.bernoulli(p=self.p).rvs((self.num_elements, siz)))
+        return name,dist
 
 
 
@@ -55,6 +62,10 @@ class Categorical(Discrete):
         else:
             return pm.Categorical(name, p=self.p, shape=self.num_elements)
 
+    def scipy_dist(self, name):
+        theta = self.p
+        dist = (lambda siz : st.rv_discrete(values=(range(len(theta)), theta)).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.rv_discrete(values=(range(len(theta)), theta)).rvs((self.num_elements, siz)))
+        return name, dist
 
 
 class Binomial(Discrete):
@@ -70,7 +81,9 @@ class Binomial(Discrete):
         else:
             return pm.Binomial(name, n=self.n, p=self.p, shape=self.num_elements)
 
-
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.binom(n=self.n, p=self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.binom(n=self.n, p=self.p).rvs((self.num_elements, siz)))
+        return name, dist
 
 class DiscreteUniform(Discrete):
     def __init__(self,lower=0, upper=1, num_elements=-1):
@@ -84,6 +97,9 @@ class DiscreteUniform(Discrete):
         else:
             return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
 
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.randint(lower=self.lower, upper=self.upper).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.randint(lower=self.lower, upper=self.upper).rvs((self.num_elements, siz)))
+        return name, dist
 
 class Geometric(Discrete):
     
@@ -96,6 +112,10 @@ class Geometric(Discrete):
             return pm.Geometric(name, p=self.p)
         else:
             return pm.Geometric(name, p=self.p, shape=self.num_elements)
+        
+    def scipy_dist(self, name):
+        dist = (lambda siz : st.geom(self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.geom(self.p).rvs((self.num_elements, siz)))
+        return name, dist
 
 
 class Constant(Discrete):
@@ -105,6 +125,9 @@ class Constant(Discrete):
 
     def pymc3_dist(self, name):
         return pm.ConstantDist(name, self.val)
+    
+    def scipy_dist(self, name):
+        return lambda siz: np.array([self.val for _ in range(siz)])
 
 
 
