@@ -8,6 +8,8 @@ from privugger.transformer.program_output import *
 import astor
 import pymc3 as pm
 import theano.tensor as tt
+import os
+import importlib
 
 def from_distributions_to_theano(input_specs, output):
     
@@ -114,77 +116,78 @@ def infer(data_spec, program_output,
     #### ##################
     ###### Lift program ###
     #######################
-    if(program is not  None):
-        ftp = FunctionTypeDecorator()
-        decorators = from_distributions_to_theano(input_specs, output)
-        
-        lifted_program = ftp.lift(program, decorators)
-        lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
-    
-        #print(astor.to_source(lifted_program_w_import))
-    
-        #c = compile(astor.to_source(lifted_program_w_import), "lifted", "exec")
-        #exec(c)
-
-
-    #################
-    ## Create model #
-    #################
-    
     if method == "pymc3":
-        f = open("typed.py", "w")
-        f.write(astor.to_source(lifted_program_w_import))
-        f.close()
+        if(program is not  None):
+            ftp = FunctionTypeDecorator()
+            decorators = from_distributions_to_theano(input_specs, output)
+            
+            lifted_program = ftp.lift(program, decorators)
+            lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
         
-        import typed as t 
-        #################
-        ## Create model #
-        #################
-    
-        with pm.Model() as model:
+            #print(astor.to_source(lifted_program_w_import))
+        
+            f = open("typed.py", "w")
+            f.write(astor.to_source(lifted_program_w_import))
+            f.close()
+            import typed as t 
+            importlib.reload(t)
             
-            priors = []
-            for idx in range(num_specs):
-                prior = input_specs[idx]
+            #################
+            ## Create model #
+            #################
+            
+            with pm.Model() as model:
                 
-                    #NOTE Tuple means that we are concatenating/stacking the distributions
-                if(prior.__class__ is tuple):
-                    if(prior[1][1] == "concat"):
-                        
-                        dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
-                        dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
-                        axis = prior[1][0]
-                        priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+                priors = []
+                for idx in range(num_specs):
+                    prior = input_specs[idx]
+                    
+                        #NOTE Tuple means that we are concatenating/stacking the distributions
+                    if(prior.__class__ is tuple):
+                        if(prior[1][1] == "concat"):
+                            
+                            dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
+                            dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
+                            axis = prior[1][0]
+                            priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+                        else:
+                            stacked = []
+                            for i in range(len(prior[0])):
+                                stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
+                            axis = prior[1][0]
+                            priors.append( pm.math.stack(stacked, axis=axis ))
                     else:
-                        stacked = []
-                        for i in range(len(prior[0])):
-                            stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
-                        axis = prior[1][0]
-                        priors.append( pm.math.stack(stacked, axis=axis ))
-                else:
-                    priors.append(prior.pymc3_dist(var_names[idx]))
-            
-            print(priors)
+                        priors.append(prior.pymc3_dist(var_names[idx]))
+                
+                print(priors)
 
-            if(program is not None):
-                output = pm.Deterministic("output", t.method(*priors) )
 
-            trace = pm.sample(draws=draws, chains=chains, cores=cores)
-            
-            return trace
+                
+                if(program is not None):
+                    output = pm.Deterministic("output", t.method(*priors) )
+
+                trace = pm.sample(draws=draws, chains=chains, cores=cores)
+                #f.truncate()
+                #f.close()
+                #os.remove("typed.py")
+                return trace
     elif method == "scipy":
-        import re
-        f = open(program, "r")
-        new = open("typed.py", "w")
-        for l in f.readlines():
-            res = re.findall("def [a-zA-Z]+\(", l)
-            if len(res):
-                new.write(re.sub("def [a-zA-Z]+\(", "def method(", l))
-            else:
-                new.write(l)
-        f.close()
-        new.close()
-        import typed as t     
+        if isinstance(program, str):
+            import re
+            f = open(program, "r")
+            new = open("typed.py", "w")
+            for l in f.readlines():
+                res = re.findall("def [a-zA-Z]+\(", l)
+                if len(res):
+                    new.write(re.sub("def [a-zA-Z]+\(", "def method(", l))
+                else:
+                    new.write(l)
+            f.close()
+            new.close()
+            import typed as t  
+            f = t.method
+        else:
+            f = program
         priors = []
         trace = {}
         for idx in range(num_specs):
@@ -196,7 +199,7 @@ def infer(data_spec, program_output,
         for pi in list(zip(*priors)):
             if len(pi) == 1:
                 pi = pi[0]
-            outputs.append(t.method(*pi))
+            outputs.append(f(*pi))
         trace["output"] = outputs
         return trace
     else:
