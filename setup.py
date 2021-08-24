@@ -11,9 +11,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
+    
 setup(
     name='privugger',
-    version='0.0.5',
+    version='0.0.6',
+    license='Apache license',
     author='Raúl Pardo, Mathias Valdbjørn Jørgensen, and Rasmus Carl Rønneberg',
     author_email='raup@itu.dk',
     description='Privacy risk analysis library for Python programs.',
