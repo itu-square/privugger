@@ -1,240 +1,214 @@
-from hypothesis import settings, given, Phase, HealthCheck, strategies as st
 import numpy as np
-import pymc3 as pm
-from privugger.attacker.generators import IntGenerator, IntList, FloatGenerator, FloatList, DiscreteUniform, Uniform
-from privugger.attacker.metrics import SimulationMetrics
-from sklearn.feature_selection import mutual_info_regression
-import typing
-import inspect
+import GPyOpt
+from GPyOpt.methods import BayesianOptimization
+from typing import *
+from privugger.attacker import parameters, parse, optimizer as opt
+from tqdm import tqdm
+from privugger.attacker.dist import *
+from scipy import stats as st
+from joblib import Parallel, delayed
 
-"""
-The data privacy debugger, PRIVUGER, is a privacy risk analysis tool.
-"""
 
-def simulate(function, *args, **kwargs) -> SimulationMetrics:
+def fix_domain(domain):
     """
-    The main method used to simulate a method
+    Ensures that the domain given is correct domain
 
-    **Returns: SimulationMetrics **
-    ----------
-        - Returns a SimulationMetrics, a method helped to assist the data analyst
-
-    **Parameters:**
-    ----------
-    Types: Types
-        - The types that your method takes
-        - Example: Tuple[int, float]
-    *number_of_test: int*
-        - Number of test to be executed
-        - Default: 1
-    *size: int*
-        - Size of the database to simulate
-        - Default: 4
-    *samples: int*
-        - Number of samples per. execution
-        - Default: 1000
-    *ranges: list[tuple[int,int]]*
-        - A list of ranges that the distributions should mimic
-        - Default: (0, 100)
+    :param domain: A dictionary specified by the user
+    :returns: The domain fixed
+    :raises TypeError: If a wrong key was used for a value
     """
-    # Check that all parameters have type annotation:
-    if len(inspect.signature(function).parameters) != len(function.__annotations__)-1:
-        raise TypeError("You need to specify all types in your method before analyzing")
+    LEGAL_VALS = {
+        "name" : lambda x: isinstance(x, str),
+        "lower": lambda x: isinstance(x, int) or isinstance(x, float),
+        "upper": lambda x: isinstance(x, int) or isinstance(x, float),
+        "type": lambda x: x == "int" or x == "float"
+    }
 
-    # The output trace:
-    traces = []
+    for k, v in LEGAL_VALS.items():
+        if not v(domain[k]):
+            #Fix the input
+            raise TypeError(f"Wrong variable for domain with key {k}, recieved {domain[k]}")
+    return domain
 
-    #Values for KWARGS
-    max_examples = 1 if "max_examples" not in kwargs else kwargs["max_examples"]
-    N = 2 if "N" not in kwargs else kwargs["N"]
-    samples = 1000 if "num_samples" not in kwargs else kwargs["num_samples"]
-    current_test = []
-    ranges = [(-10000, 10000) for _ in range(len(inspect.signature(function).parameters))] if "ranges" not in kwargs else kwargs["ranges"]
-    logging = True if "logging" not in kwargs else kwargs["logging"]
-
-    #Logging
-    if not logging:
-        import logging
-        logger = logging.getLogger("pymc3")
-        logger.setLevel(logging.ERROR)
-        logger.propagate = False
-
-    @settings(max_examples=max_examples, deadline=None, phases=[Phase.generate], suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much])
-    @given(st.data())
-    def helper(data):
-
-        def parse(argument, islist=False, istuple=False, parameter_pos=0, ranges=ranges):
-            """
-            PSEUDO CODE FOR PARSE:
-            values <- Ø
-            For each p <- parameter type in argument
-                case p == list
-                    x <- Ø
-                    s <- Construct a secret to cover all possible values as p
-                    x[0] <- s
-                    for n=1, n<=N, n++
-                        d <- parse(p)
-                return x
-                case p == tuple
-                    x <- Ø
-                    for t <- type in p
-                        x += parse(t)
-                case p == float
-                    d <- float generator
-                    return d
-                case p == int
-                    d <- int generator
-                    return d
-            """
-            if argument == int:
-                name = f"Alice-int_{parameter_pos}"
-                if islist:
-                    #Figure out how to fetch range:
-                    alice_int = pm.distributions.DiscreteUniform(name, ranges[0][0], ranges[0][1])
-                    dist, info = IntList(name=f"intList_{parameter_pos}", data=data, length=N, ranges=ranges[0])
-                    return ((alice_int, dist,info), parameter_pos)
-                else:
-                    dist,info = IntGenerator(data=data, name=f"intDist_{parameter_pos}", ranges=ranges[0])
-                    if not istuple:
-                        return (([dist], dist,info), parameter_pos)
-                    alice_int = pm.distributions.DiscreteUniform(name, ranges[0][0], ranges[0][1])
-                    return ((alice_int, dist,info), parameter_pos)
-            elif argument == float:
-                if islist:
-                    alice_float = pm.distributions.Uniform(f"Alice-float_{parameter_pos}", ranges[0][0], ranges[0][1])
-                    dist, info = FloatGenerator(name=f"floatList_{parameter_pos}", data=data, shape=N, ranges=ranges[0])
-                    return ((alice_float, dist,info), parameter_pos)
-                else:
-                    dist, info = FloatGenerator(name=f"floatDist_{parameter_pos}", data=data, shape=1, ranges=ranges[0])
-                    if not istuple:
-                        return (([dist], dist,info), parameter_pos)
-                    alice_float = pm.distributions.Uniform(f"Alice-float_{parameter_pos}", ranges[0][0], ranges[0][1])
-                    return ((alice_float, dist,info), parameter_pos)
-            elif argument.__origin__ == list or argument.__origin__ == typing.List:
-                # parameter is a list
-                x = np.empty(N+1, dtype=object)
-                alice_info, d, inf = [],[],[]
-                for i, p in enumerate(argument.__args__):
-                    (alice, dist, info), pos = parse(p, islist=True, istuple=istuple, parameter_pos=parameter_pos, ranges=ranges[i:])
-                    parameter_pos = pos+1
-                    alice_info = alice
-                    d.append(dist)
-                    inf.append(info)
-                x[0] = alice
-                inputs = [[] for _ in range(N)]
-                for k in range(N):
-                    for par in d:
-                        if len(par) > 1:
-                            for dist in par:
-                                try:
-                                    inputs[k].append(dist[k])
-                                except:
-                                    break
-                        else:
-                            inputs[k].append(par[k])
-                    x[k+1] = inputs[k]
-                return ((alice_info, x, info), parameter_pos)
-            elif argument.__origin__ == tuple or argument.__origin__ == typing.Tuple:
-                alice_info, d, i = [],[],[]
-                for j, p in enumerate(argument.__args__):
-                    (alice, dist, info),pos = parse(p, islist=islist, istuple=True, parameter_pos=parameter_pos, ranges=ranges[j:])
-                    parameter_pos = pos+1
-                    alice_info.append(alice)
-                    d.append(dist)
-                    i.append(info)
-                return ((tuple(alice_info), tuple(d), tuple(i)), parameter_pos)
-
-        #Progress bar
-        current_test.append([])
-        percentage = (len(current_test)/max_examples)
-        width = 100
-        fill = "█"*(int(width*percentage))
-        tail = "-"*(int(width*(1-percentage)))
-        print("\r["+fill+tail+"] " + str(len(current_test)) + "/" + str(max_examples), end="\r")
-
-        #Parameters setup
-        parameters = list(function.__annotations__.values())
-        pos = 0
-        alice_names = []
-        outputs = []
-        info = []
-
-        #A single data type
-        if len(parameters) == 2:
-            with pm.Model() as model:
-                p = parameters[0]
-                (alice, dist, temp_info), pos = parse(p, parameter_pos=pos, ranges=ranges)
-                for n in alice:
-                    alice_names.append(n)
-                outputs.append(dist)
-                info.append(temp_info)
-                pos+=1
-                output = pm.Deterministic("Output", function(*outputs))
-                trace = pm.sample(samples, cores=1)
-                traces.append((trace, alice_names, info))      
-        else:
-            TEST_PER_PARAMETER = 10
-            # generate for the first parameter and keep the other locked
-            for p_pos, p in enumerate(parameters[:-1]):
-                pos = 0
-                with pm.Model() as model:
-                    # p becomes the one to test on
-                    alice_info_pairs = [[] for _ in range(TEST_PER_PARAMETER)]
-                    info_pairs = []
-                    output_pairs = []
-                    # Generate 10 samples to test versus one specific distribution
-                    for i in range(TEST_PER_PARAMETER):
-                        (alice, dist, temp_info), pos = parse(p, parameter_pos=pos)
-                        for n in alice:
-                            alice_info_pairs[i].append(n)
-                        output_pairs.append([dist])
-                        info_pairs.append([temp_info])
-                        pos+=1
-                    for p2_pos, p_2 in enumerate(parameters[:-1]):
-                        if p2_pos != p_pos:
-                            (alice, dist, temp_info), pos = parse(p, parameter_pos=pos)
-                            for i in range(TEST_PER_PARAMETER):
-                                for n in alice:
-                                    alice_info_pairs[i].append(n)
-                                output_pairs[i].append(dist)
-                                info_pairs[i].append(temp_info)
-                            pos+=1
-                    for i in range(TEST_PER_PARAMETER):
-                        pm.Deterministic(f"Output_{i}", function(*output_pairs[i]))
-                    trace = pm.sample(samples, cores=1, steps=pm.NUTS())
-                    for i in range(TEST_PER_PARAMETER):
-                        traces.append((trace, alice_info_pairs[i], info_pairs[i]))   
-    helper()
-    return SimulationMetrics(traces)
-
-def simulate_decorator(*args, **kwargs):
+def domain_to_dist_ids(d, ids):
     """
-    ***A decorator used to probabilistically analyse the method***
+    Parameterize an id to a distribution (similar to that in Table 4 in thesis)
 
-    **Returns: List[float] **
-    ----------
-        - Returns a list containing mutual information based on each test
-
-    **Parameters:**
-    ----------
-    Types: Types
-        - The types that your method takes
-        - Example: Tuple[int, float]
-    *number_of_test: int*
-        - Number of test to be executed
-        - Default: 1
-    *size: int*
-        - Size of the database to simulate
-        - Default: 4
-    *samples: int*
-        - Number of samples per. execution
-        - Default: 1000
-    *ranges: list[tuple[int,int]]*
-        - A list of ranges that the distributions should mimic
-        - Default: (0, 100)
+    :param d: the domain to be converted to a distribution
+    :param ids: A location of what parameter to convert
     """
-    def inner(func):
-        trace = simulate(func, args, kwargs)
-        return (lambda x=trace:x)
+    res = [fix_domain(domain) for domain in d]
+    resulting_domain = []
+    constraints = []
+    pos = 0
+    for i, domain in zip(ids,d):
+        if i == 0:
+            if domain["type"] == "float":
+                dom, cons = normal_domain(domain)
+            else:
+                dom, cons = poisson_domain(domain, pos)
+            pos += 2
+        elif i == 1:
+            dom, cons = uniform_domain(domain, pos)
+            pos += 2
+        elif i == 2:
+            dom, cons = half_normal_domain(domain, pos)
+            pos += 2
+
+        for di in dom:
+            resulting_domain.append(di)
+        for c in cons:
+            constraints.append(c)
+    return resulting_domain, constraints
+
+def work_on_random_alice(q):
+    """
+    A way to look for a random secret in List[...] without altering the program
+
+    :param q: The ppm
+    :returns: An altered q from q(a List[int]) to q(a: int, b: List[int])
+    """
+    if list(q.__annotations__.values())[0].__args__[0] == int:
+        def inner(a: int, b: List[int]) -> int:
+            return q([a[0]]+b[1:])
+    else:
+        def inner(a: float, b: List[float]) -> float:
+            return q([a[0]]+b[1:])
     return inner
 
+def construct_analysis(q, domain, f, random_state=None, cores=1):
+    """
+    Analyse a program for any leakage attacks
+
+    :param q: The PPM 
+    :param domain: A dictionary specifying parameters range
+    :param f: The leakage measurement
+    :param random_state: Default none, but can be used to fix a random seed
+    :param cores: how many cores to run the analysis on
+    :returns: A Wrapper class specifying leakage found
+    """
+    pars = list(q.__annotations__.values())
+    if len(pars) == 2 and len(domain) == 1 and "alice" not in domain[0]:
+        if pars[0] != int and pars != float:
+            domain.append({
+                "name": domain[0]["name"] + "_2",
+                "lower": domain[0]["lower"],
+                "upper": domain[0]["upper"],
+                "type": domain[0]["type"],
+                })
+            q = work_on_random_alice(q)
+    f,q = q,f
+    method = parse.create_analytical_method(f, q, domain, random_state)
+
+    comb = np.array([np.arange(parameters.CONT_DIST) if d["type"] == "float" else np.arange(parameters.DISC_DIST) for d in domain])
+
+    combs = np.array(np.meshgrid(*comb)).T.reshape(-1, len(comb))
+
+    # X, Y, fs = [],[], []
+    def run_analysis(dist):
+        cur_dist, constraint = domain_to_dist_ids(domain, dist)
+        feasible_region = GPyOpt.Design_space(space = cur_dist, constraints = constraint) 
+        initial_design = GPyOpt.experiment_design.initial_design('random', feasible_region, 10)
+
+        f = lambda x: method(x,dist)
+        # fs.append(f)
+        #CHOOSE the objective
+        objective = GPyOpt.core.task.SingleObjective(f)
+
+        # CHOOSE the model type
+        model = GPyOpt.models.GPModel(exact_feval=True,optimize_restarts=10,verbose=False)
+
+        #CHOOSE the acquisition optimizer
+        aquisition_optimizer = GPyOpt.optimization.AcquisitionOptimizer(feasible_region)
+
+        #CHOOSE the type of acquisition
+        if parameters.ACQUISITION == "LCB":
+            acquisition = GPyOpt.acquisitions.AcquisitionLCB(model, feasible_region, optimizer=aquisition_optimizer)
+        elif parameters.ACQUISITION == "PI":
+            acquisition = GPyOpt.acquisitions.AcquisitionMPI(model, feasible_region, optimizer=aquisition_optimizer)
+        elif parameters.ACQUISITION == "EI":
+            acquisition = GPyOpt.acquisitions.AcquisitionEI(model, feasible_region, optimizer=aquisition_optimizer)
+        else:
+            raise TypeError("The parameters for acquisition has to be either EI, PI or LCB")
+
+        #CHOOSE a collection method
+        evaluator = GPyOpt.core.evaluators.Sequential(acquisition)
+        bo = GPyOpt.methods.ModularBayesianOptimization(model, feasible_region, objective, acquisition, evaluator, initial_design)
+
+        bo.run_optimization(max_iter = parameters.MAX_ITER, eps = parameters.EPS, verbosity=False) 
+
+        
+
+        return bo.X, bo.Y, dist, bo, method
+    res = Parallel(n_jobs=cores)(delayed(run_analysis)(dist) for dist in tqdm(combs))
+
+    return wrapper(res, [d["type"] for d in domain])
+
+
+
+class wrapper:
+    """
+    A class to hold all information about the leakage found
+    """
+    def __init__(self, res, types):
+        self.X = [r[0] for r in res]
+        self.Y = [r[1] for r in res]
+        self.dist = [r[2] for r in res]
+        self.bos = [r[3] for r in res]
+        self.functions = [r[4] for r in res]
+        self.types = types
+
+    def __str__(self):
+        return self.best_dist(False)
+
+    def print_dist(self, val, di, t, leakage):
+        """
+        A method for showing the best distribution found
+        """
+        if t == "float":
+            if di == 0:
+                return(f"Normal(mu={val[0]}, sigma={val[1]})")
+            elif di == 1:
+                return(f"Uniform(lower={val[0]}, scale={val[1]})")
+            elif di == 2:
+                return(f"HalfNormal(mu={val[0]}, sigma={val[1]})")
+        else:
+            if di == 0:
+                return(f"Poisson(lambda={val[0]}, loc={val[1]})")
+            elif di == 1:
+                return(f"Discrete Uniform(lower={val[0]}, scale={val[1]}) ")
+
+    def best_dist(self, should_print=True):
+        """
+        Prints the best distribution based on the Y found
+        """
+        res = []
+        for i in range(len(self.X)):
+            best_id = np.argmin(self.Y[i])
+            best_y = self.Y[i][best_id]
+            best_x = self.X[i][best_id]
+            dists = self.dist[i]
+            s = ""
+            for di, t in zip(dists, self.types):
+                s += self.print_dist(best_x, di, t, -best_y)
+            s += f" - maximum of {-best_y}"
+            res.append(s)
+        if should_print:
+            for v in res:
+                print(v)
+        return res
+
+    def maximum(self):
+        """ 
+        Find the best value acchieved
+        """
+        best = [min(yi) for yi in self.Y]
+        return best
+    
+    def run(self, i, return_trace=False):
+        """
+        Executes the program again with the best values
+
+        :param i: An indicator of which dist to use
+        """
+        return self.functions[i]([self.X[i][np.argmin(self.Y[i])]],i, return_trace=return_trace)
