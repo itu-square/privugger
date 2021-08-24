@@ -142,7 +142,7 @@ def infer(data_spec, program_output,
                 for idx in range(num_specs):
                     prior = input_specs[idx]
                     
-                        #NOTE Tuple means that we are concatenating/stacking the distributions
+                    #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
                             
@@ -184,7 +184,8 @@ def infer(data_spec, program_output,
                     new.write(l)
             f.close()
             new.close()
-            import typed as t  
+            import typed as t
+            importlib.reload(t)
             f = t.method
         else:
             f = program

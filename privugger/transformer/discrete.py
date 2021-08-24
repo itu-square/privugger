@@ -120,8 +120,9 @@ class Geometric(Discrete):
 
 class Constant(Discrete):
     
-    def __init__(self, val):
+    def __init__(self, val, num_elements=-1):
         self.val = val
+        self.num_elements = num_elements
 
     def pymc3_dist(self, name):
         return pm.ConstantDist(name, self.val)
