@@ -31,9 +31,22 @@ def from_distributions_to_theano(input_specs, output):
                     itypes.append(TheanoToken.float_vector)
 
             #NOTE Tuple means that we are concatenating or stacking the the distributions
+            elif(s.__class__ is tuple and s[1][1] == "obs"):
+                if(issubclass(s[0].__class__, Continuous)):
+                    if(s[0].num_elements == -1):
+                        itypes.append(TheanoToken.float_scalar)
+                    elif(s[0].num_elements==1):
+                        itypes.append(TheanoToken.single_element_float_vector)
+                    else:
+                        itypes.append(TheanoToken.float_vector)
+                else:
+                    if(s[0].num_elements == -1):
+                        itypes.append(TheanoToken.int_scalar)
+                    elif(s[0].num_elements==1):
+                        itypes.append(TheanoToken.single_element_int_vector)
+                    else:
+                        itypes.append(TheanoToken.int_vector)
             elif(s.__class__ is tuple):
-                print(s[1][1])
-                
                 if(s[1][1] == "concat"):
                     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
                         itypes.append(TheanoToken.float_vector)
@@ -44,10 +57,10 @@ def from_distributions_to_theano(input_specs, output):
                         raise TypeError("When concatenating the distributions must have the same domain")
                 else:
                     #NOTE we are assuming that all of the distributions to be stacked have the same domain
-                     if(issubclass(s[0][0].__class__, Continuous)):
+                    if(issubclass(s[0][0].__class__, Continuous)):
                         itypes.append(TheanoToken.float_matrix)
-                     else:
-                         itypes.append(TheanoToken.int_matrix)
+                    else:
+                        itypes.append(TheanoToken.int_matrix)
             else:
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
@@ -71,6 +84,11 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
+def add_observation(distribution, constraints):
+    """
+    Adds a softconstraint on a specific distribution
+    """
+    return (distribution, (constraints, "obs"))
 
 def concatenate(distribution_a, distribution_b, axis=0):
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
@@ -144,7 +162,16 @@ def infer(data_spec, program_output,
                     
                         #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
-                        if(prior[1][1] == "concat"):
+
+                        if prior[1][1] == "obs":
+                            # Add observation
+                            print("Adding observation")
+                            dist = prior[0].pymc3_dist(var_names[idx])
+                            constraints = prior[1][0]
+                            temp = pm.Deterministic("TEST", dist)
+                            obs = pm.Bernoulli(var_names[idx] + "_obs", 1.*(temp > int(constraints[-1])), observed=1)
+                            priors.append(dist)
+                        elif(prior[1][1] == "concat"):
                             
                             dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
                             dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
@@ -156,6 +183,8 @@ def infer(data_spec, program_output,
                                 stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
                             axis = prior[1][0]
                             priors.append( pm.math.stack(stacked, axis=axis ))
+
+
                     else:
                         priors.append(prior.pymc3_dist(var_names[idx]))
                 
