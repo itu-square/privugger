@@ -2,7 +2,6 @@
 The privugger package
 """
 
-
-from attacker import *
-from transformer import *
-from measures import *
+from privugger.transformer import *
+from privugger.attacker import *
+from privugger.measures import *
