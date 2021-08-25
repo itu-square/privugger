@@ -419,7 +419,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
         theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import, program])
+        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import,  program])
         
         return new_program
 
