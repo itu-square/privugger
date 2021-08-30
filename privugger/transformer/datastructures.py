@@ -1,6 +1,7 @@
 
 from privugger.transformer.method import infer
-
+import re
+import pymc3 as pm
 
 def program(pandas):
     pass
@@ -27,7 +28,91 @@ class Dataset():
             self.var_names             = var_names
 
 
+class Program():
 
+    def __init__(self, dataset, output_type, method):
+        """
+        A class representing the privacy preserving program to be analysed.
+
+        Parameters
+        ------------
+        dataset: the dataset of type privugger.Dataset containg the values used in the program
+        output_type: the output type specified as Int, Float, List(Int), List(Float)
+        program: The program to be analysed, either string to location program, lambda method or def function
+        """
+        if isinstance(dataset, Dataset):
+            self.dataset = dataset
+            self.output_type = output_type
+            self.program = method
+            self.observation = None
+            self.execute_observations = lambda a,b: None
+        else:
+            raise ValueError("The dataset has to be of type privugger.Dataset")
+
+    def add_observation(self, constraints):
+        """
+        Adds observation based on a string so long as the string actually represent legit constraints
+        
+        e.g: 10 > output > 5
+
+        Parameters
+        ------------
+        constraints -> String: A string representing the constraints to be added
+
+        """
+        cons = "([0-9]*)([>=<]*)([a-zA-Z\s]*)([>=<]*)([0-9]*)"
+        vals = re.search(cons, constraints)
+
+        # val1 cons1 name cons2 val2
+        # 10 > output >= 2
+        val1 = vals.group(1)
+        cons1 = vals.group(2)
+        name = vals.group(3)
+        cons2 = vals.group(4)
+        val2 = vals.group(5)
+
+        if name.strip() in self.dataset.var_names:
+            name = name.strip()
+
+        partial1 = lambda x : None
+        partial2 = lambda x: None
+        if name in self.dataset.var_names or "output" in name:
+            if val1 != "" and cons1 != "":
+                partial1 = self.unwrap_constrain(int(val1), cons1)
+            
+            if val2 != "" and cons2 != "":
+                partial2 = self.unwrap_constrain(int(val2), cons2,i=1)
+        
+            def inner(prior, output):
+                if name in self.dataset.var_names:
+                    idx = self.dataset.var_names.index(name)
+                    distribution = prior[idx]
+                else:
+                    distribution = output
+                partial1(distribution)
+                partial2(distribution)
+            self.execute_observations = inner
+        else:
+            raise ValueError("Observation was not known. Make sure that the name is part of the names in privugger.Datastructure")
+
+
+    def unwrap_constrain(self, value, cons, i=0):
+        if not i % 2:
+            cons = cons.replace(">", "<")
+        def inner(distribution):
+            print("HERE!")
+            cons_wrapper = pm.Deterministic("cons_wrapper", distribution)
+            if cons == ">":
+                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper>value), observed=1)
+            elif cons == ">=":
+                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper>=value), observed=1)
+            elif cons == "<":
+                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper<value), observed=1)
+            elif cons == "<=":
+                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper<=value), observed=1)
+            else:
+                raise ValueError(f"The program does not support {cons} as a constrain")
+        return inner
     
 class Float():
     
