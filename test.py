@@ -22,10 +22,10 @@ ds   = pv.Dataset(input_specs = [age],
 program = pv.Program(dataset=ds, output_type=pv.Float, method=alpha)
 
 # Add observations
-program.add_observation("output>56")
+program.add_observation("57>output>56")
 
 # Call infer and specify program output
 trace = pv.infer(program, cores=2, draws=1000)
 
 print(trace["output"])
-print(all(np.array(trace["output"] > 56).flatten()))
+print(all(57 > (np.array(trace["output"] > 56).flatten())))

@@ -100,16 +100,14 @@ class Program():
         if not i % 2:
             cons = cons.replace(">", "<")
         def inner(distribution):
-            print("HERE!")
-            cons_wrapper = pm.Deterministic("cons_wrapper", distribution)
             if cons == ">":
-                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper>value), observed=1)
+                pm.Normal(f"cons_{i}", distribution>value, 0.01, observed=1)
             elif cons == ">=":
-                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper>=value), observed=1)
+                pm.Normal(f"cons_{i}", distribution>=value, 0.01, observed=1)
             elif cons == "<":
-                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper<value), observed=1)
+                pm.Normal(f"cons_{i}", distribution<value, 0.01, observed=1)
             elif cons == "<=":
-                pm.Bernoulli(f"cons_{i}", 1.*(cons_wrapper<=value), observed=1)
+                pm.Normal(f"cons_{i}", distribution<=value, 0.01, observed=1)
             else:
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner

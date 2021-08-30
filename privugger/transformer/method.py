@@ -152,10 +152,6 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                     else:
                         priors.append(prior.pymc3_dist(var_names[idx]))
                 
-                print(priors)
-
-
-                
                 if(program is not None):
                     output = pm.Deterministic("output", t.method(*priors) )
 
