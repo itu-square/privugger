@@ -8,6 +8,7 @@ from privugger.transformer.program_output import *
 import astor
 import pymc3 as pm
 import theano.tensor as tt
+import arviz as az
 import os
 import importlib
 
@@ -157,7 +158,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
 
                 # Add observations
                 prog.execute_observations(prior, output)
-                trace = pm.sample(draws=draws, chains=chains, cores=cores)
+                trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
                 #f.truncate()
                 #f.close()
                 #os.remove("typed.py")
@@ -193,7 +194,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                 pi = pi[0]
             outputs.append(f(*pi))
         trace["output"] = outputs
-        return trace
+        return az.convert_to_inference_data(trace)
     else:
         raise TypeError("Unsupported probabilistic framework")
 
