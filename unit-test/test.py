@@ -1,7 +1,7 @@
 import os
 import sys
 import inspect
-
+import numpy as np
 
 #Use this on Windows
 #currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -12,12 +12,7 @@ import inspect
 #It appears that this is the way to do it when on Linux
 sys.path.append(os.path.join(".."))
 
-import privugger.transformer.datastructures as pvds
-from privugger.transformer.discrete import *
-from privugger.transformer.continuous import *
-from privugger.transformer.program_output import *
-from privugger.transformer.method import *
-from privugger.measures.mutual_information import *
+import privugger as pv
 import unittest
 
 class TestProbabilityGenerators(unittest.TestCase):
@@ -45,20 +40,21 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
-        a = Normal(mu=10, std=3.5)
-        b = Normal(mu=40, std=3.5)
+        a = pv.Normal(mu=10, std=3.5)
+        b = pv.Normal(mu=40, std=3.5)
 
     
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [a,b],
+        ds = pv.Dataset(input_specs = [a,b],
                         var_names   = ["age", "height"])
 
+        prog = pv.Program(ds, pv.Float, "addition.py")
         #Program
         # self.create_file(lambda a,b: a+b)
 
 
         # Call infer
-        trace = infer(ds, Float, "addition.py", draws= 1000, cores=1)
+        trace = pv.infer(prog, draws= 1000, cores=1)
         for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
             self.assertEqual(a+b, o)
         # os.remove("temp.py")
@@ -67,20 +63,20 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
-        a = Normal(mu=10, std=3.5)
-        b = Normal(mu=40, std=3.5)
+        a = pv.Normal(mu=10, std=3.5)
+        b = pv.Normal(mu=40, std=3.5)
 
     
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [a,b],
+        ds = pv.Dataset(input_specs = [a,b],
                         var_names   = ["age", "height"])
 
         #Program
         # self.create_file(lambda a,b: a*b)
 
-
+        prog = pv.Program(ds, pv.Float, "multiplication.py")
         # Call infer
-        trace = infer(ds, Float, "multiplication.py", draws= 1000, cores=1)
+        trace = pv.infer(prog, draws= 1000, cores=1)
         for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
             self.assertEqual(a*b, o)
         # os.remove("temp.py")
@@ -89,19 +85,20 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for continuous uniform, no value exceeds domain
         """
-        a = Uniform(10,50)
+        a = pv.Uniform(10,50)
 
     
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [a],
+        ds = pv.Dataset(input_specs = [a],
                         var_names   = ["age"])
 
+        prog = pv.Program(ds, pv.Float, "identity.py")
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
-        trace = infer(ds,Float, "identity.py", draws= 1000, cores=1)
+        trace = pv.infer(prog, draws= 1000, cores=1)
         for ai, oi in zip(trace["age"], trace["output"]):
             self.assertTrue(50 >= ai >= 10)
             self.assertTrue(50 >= oi >= 10)
@@ -110,19 +107,20 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for discrete uniform, no value exceeds domain
         """
-        a = DiscreteUniform(10,50)
+        a = pv.DiscreteUniform(10,50)
 
     
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [a],
+        ds = pv.Dataset(input_specs = [a],
                         var_names   = ["age"])
 
+        prog = pv.Program(ds, pv.Int, "identity.py")
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
-        trace = infer(ds,Int, "identity.py", draws= 1000, cores=1)
+        trace = pv.infer(prog, draws= 1000, cores=1)
         for ai, oi in zip(trace["age"], trace["output"]):
             self.assertTrue(50 >= ai >= 10)
             self.assertTrue(50 >= oi >= 10)
@@ -134,20 +132,46 @@ class TestProbabilityGenerators(unittest.TestCase):
         sample_size = 1000
         
         # Specify distributions
-        age  = Normal(mu=55.2, std=3.5)
+        age  = pv.Normal(mu=55.2, std=3.5)
 
         # Create dataset and specify program output
-        ds = pvds.Dataset(input_specs = [age],
+        ds = pv.Dataset(input_specs = [age],
                         var_names   = ["age"])
 
         #Program
+        prog = pv.Program(ds, pv.Float, "identity.py")
 
         # Call infer
-        trace = infer(ds, Float, "identity.py", draws= sample_size, cores=1, chains=1)
+        trace = pv.infer(prog, draws= sample_size, cores=1, chains=1)
 
         self.assertEqual(len(trace["age"]), sample_size)
         self.assertEqual(len(trace["output"]), sample_size)
 
+    def test_constraints_greater_than_works(self):
+        """
+        Ensures that setting a constraint actually limits the trace
+        """
+        def alpha(age):
+            return (age.sum()) / (age.size)
+        # Database size
+        N    = 10
+        # Specify distributions
+        age  = pv.Normal(mu=55.2, std=3.5, num_elements=N)
+
+        # Create dataset. Refer to "age_alice" as "age1" in the trace and "age" as "age2" in the trace. This is the general naming convention. 
+        ds   = pv.Dataset(input_specs = [age],
+                        var_names   = ["age"])
+
+        # For now output type can be: Int, Float, List(Float), List(Int)
+        program = pv.Program(dataset=ds, output_type=pv.Float, method=alpha)
+
+        # Add observations
+        program.add_observation("57>output>56")
+
+        # Call infer and specify program output
+        trace = pv.infer(program, cores=2, draws=1000)
+
+        self.assertTrue(all(57 > (np.array(trace["output"] > 56).flatten())))
 
 if __name__ == '__main__':
     unittest.main()
