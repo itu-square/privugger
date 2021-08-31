@@ -163,7 +163,7 @@ class TestProbabilityGenerators(unittest.TestCase):
                         var_names   = ["age"])
 
         # For now output type can be: Int, Float, List(Float), List(Int)
-        program = pv.Program(dataset=ds, output_type=pv.Float, method=alpha)
+        program = pv.Program(dataset=ds, output_type=pv.Float, function=alpha)
 
         # Add observations
         program.add_observation("57>output>56")

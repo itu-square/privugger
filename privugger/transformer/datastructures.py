@@ -30,7 +30,7 @@ class Dataset():
 
 class Program():
 
-    def __init__(self, dataset, output_type, method):
+    def __init__(self, dataset, output_type, function):
         """
         A class representing the privacy preserving program to be analysed.
 
@@ -43,7 +43,7 @@ class Program():
         if isinstance(dataset, Dataset):
             self.dataset = dataset
             self.output_type = output_type
-            self.program = method
+            self.program = function
             self.observation = None
             self.execute_observations = lambda a,b: None
         else:
