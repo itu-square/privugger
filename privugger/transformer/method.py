@@ -31,10 +31,7 @@ def from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.float_vector)
 
-            #NOTE Tuple means that we are concatenating or stacking the the distributions
             elif(s.__class__ is tuple):
-                print(s[1][1])
-                
                 if(s[1][1] == "concat"):
                     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
                         itypes.append(TheanoToken.float_vector)
@@ -45,10 +42,10 @@ def from_distributions_to_theano(input_specs, output):
                         raise TypeError("When concatenating the distributions must have the same domain")
                 else:
                     #NOTE we are assuming that all of the distributions to be stacked have the same domain
-                     if(issubclass(s[0][0].__class__, Continuous)):
+                    if(issubclass(s[0][0].__class__, Continuous)):
                         itypes.append(TheanoToken.float_matrix)
-                     else:
-                         itypes.append(TheanoToken.int_matrix)
+                    else:
+                        itypes.append(TheanoToken.int_matrix)
             else:
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
@@ -72,7 +69,6 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-
 def concatenate(distribution_a, distribution_b, axis=0):
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
@@ -84,20 +80,14 @@ def stack(distributions, axis=0):
     #if we are concatenating or stacking
     return (distributions, (axis, "stack"))
 
-def infer(data_spec, program_output,
-          program=None, cores=2 ,
-          chains=2, draws=500, method="pymc3"):
+def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     """
     
     Parameters
     -----------
     
-    data_spec: A list of the specifications for the input to the program
+    prog: the program type specified as a privugger.Program type
     
-    program_output: The ouput of the program as a normal type
-
-    program: String with a path to the target program for analysis. Default None
-   
     cores: Int number of cores to use for sampling. Default 500
     
     chains: Int number of chains. Default 2
@@ -108,10 +98,12 @@ def infer(data_spec, program_output,
     ----------
     trace: Trace produced by the probabilistic programming inference 
     """
+    data_spec = prog.dataset
+    output = prog.output_type
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
     var_names      = data_spec.var_names
-    output         = program_output
+    program        = prog.program
 
     
     #### ##################
@@ -146,7 +138,6 @@ def infer(data_spec, program_output,
                     #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
-                            
                             dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
                             dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
                             axis = prior[1][0]
@@ -157,16 +148,16 @@ def infer(data_spec, program_output,
                                 stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
                             axis = prior[1][0]
                             priors.append( pm.math.stack(stacked, axis=axis ))
+
+
                     else:
                         priors.append(prior.pymc3_dist(var_names[idx]))
-                
-                print(priors)
-
-
                 
                 if(program is not None):
                     output = pm.Deterministic("output", t.method(*priors) )
 
+                # Add observations
+                prog.execute_observations(prior, output)
                 trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
                 #f.truncate()
                 #f.close()
