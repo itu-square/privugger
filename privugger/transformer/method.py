@@ -134,7 +134,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                 for idx in range(num_specs):
                     prior = input_specs[idx]
                     
-                        #NOTE Tuple means that we are concatenating/stacking the distributions
+                    #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
                             dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
@@ -175,7 +175,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                     new.write(l)
             f.close()
             new.close()
-            import typed as t  
+            import typed as t
+            importlib.reload(t)
             f = t.method
         else:
             f = program
