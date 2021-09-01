@@ -1,12 +1,10 @@
 
-from privugger.transformer.method import infer
+#from privugger.transformer.method import infer
 import re
 import pymc3 as pm
 
-def program(pandas):
-    pass
 
-class Dataset():
+class Dataset:
 
     def __init__(self, input_specs, var_names):
 
@@ -28,7 +26,7 @@ class Dataset():
             self.var_names             = var_names
 
 
-class Program():
+class Program:
 
     def __init__(self, dataset, output_type, function):
         """
@@ -112,7 +110,7 @@ class Program():
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner
     
-class Float():
+class Float:
     
     def __init__(self, dist= None,  name=None):
         """
@@ -131,7 +129,7 @@ class Float():
             self.name=name
 
    
-class Int():
+class Int:
 
     def __init__(self, dist=None,  name=None):
         """

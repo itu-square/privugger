@@ -22,7 +22,8 @@ def from_distributions_to_theano(input_specs, output):
         itypes.append(TheanoToken.float_matrix)
     else:
         for s in input_specs:
-            
+            if(s.is_hyper_param):
+                continue
             if(issubclass(s.__class__, Continuous)):
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.float_scalar)
@@ -132,6 +133,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
             with pm.Model() as model:
                 
                 priors = []
+                hyper_params = []
+                
                 for idx in range(num_specs):
                     prior = input_specs[idx]
                     
@@ -151,7 +154,19 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
 
 
                     else:
-                        priors.append(prior.pymc3_dist(var_names[idx]))
+                        if(prior.is_hyper_param):
+                            hyper_params.append((prior, var_names[idx]))
+                        else:
+                            params = prior.get_params()
+                            hypers_for_prior = []
+                            for p_idx in range(len(params)):
+                                p = params[p_idx]
+                                if(isinstance(p, str)):
+                                    for hyper in hyper_params:
+                                        if(p == hyper[1]):
+                                            hypers_for_prior.append((hyper[0],hyper[1], p_idx))
+                            
+                            priors.append(prior.pymc3_dist(var_names[idx], hypers_for_prior))
                 
                 if(program is not None):
                     output = pm.Deterministic("output", t.method(*priors) )
