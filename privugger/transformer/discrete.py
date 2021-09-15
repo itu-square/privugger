@@ -35,8 +35,9 @@ __all__ = [
 
 #NOTE the convention is that num_elements -1 means that it is not set 
 class Bernoulli(Discrete):
-    def __init__(self, p=0.5, num_elements=-1, is_hyper_param=False):
+    def __init__(self,name, p=0.5, num_elements=-1, is_hyper_param=False):
         self.p = p
+        self.name =name
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
     
@@ -56,7 +57,7 @@ class Bernoulli(Discrete):
 
 class Categorical(Discrete):
     
-    def __init__(self, p=None, num_elements=-1, is_hyper_param=False):
+    def __init__(self, name, p=None, num_elements=-1, is_hyper_param=False):
         
         if (p==None):
             raise TypeError("please specify p")
@@ -64,6 +65,7 @@ class Categorical(Discrete):
             self.p=p
 
         self.num_elements=num_elements
+        self.name = name
         self.is_hyper_param = is_hyper_param
 
     def pymc3_dist(self, name):
@@ -82,8 +84,9 @@ class Categorical(Discrete):
 
 class Binomial(Discrete):
     
-    def __init__(self, n=2, p=0.5, num_elements=-1, is_hyper_param=False):
+    def __init__(self, name, n=2, p=0.5, num_elements=-1, is_hyper_param=False):
         self.n=n
+        self.name = name
         self.p=p
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
@@ -100,9 +103,10 @@ class Binomial(Discrete):
         return name, dist
 
 class DiscreteUniform(Discrete):
-    def __init__(self,lower=0, upper=1, num_elements=-1, is_hyper_param=False):
+    def __init__(self, name, lower=0, upper=1, num_elements=-1, is_hyper_param=False):
         self.lower = lower
         self.upper = upper
+        self.name = name
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
 
@@ -141,8 +145,9 @@ class Geometric(Discrete):
 
 class Constant(Discrete):
     
-    def __init__(self, val, num_elements=-1, is_hyper_param=False):
+    def __init__(self, name, val, num_elements=-1, is_hyper_param=False):
         self.val = val
+        self.name = name
         self.num_elements = num_elements
         self.is_hyper_param = is_hyper_param
 

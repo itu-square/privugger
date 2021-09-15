@@ -22,17 +22,8 @@ def from_distributions_to_theano(input_specs, output):
         itypes.append(TheanoToken.float_matrix)
     else:
         for s in input_specs:
-            if(s.is_hyper_param):
-                continue
-            if(issubclass(s.__class__, Continuous)):
-                if(s.num_elements == -1):
-                    itypes.append(TheanoToken.float_scalar)
-                elif(s.num_elements==1):
-                    itypes.append(TheanoToken.single_element_float_vector)
-                else:
-                    itypes.append(TheanoToken.float_vector)
-
-            elif(s.__class__ is tuple):
+                       
+            if(s.__class__ is tuple):
                 if(s[1][1] == "concat"):
                     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
                         itypes.append(TheanoToken.float_vector)
@@ -47,6 +38,17 @@ def from_distributions_to_theano(input_specs, output):
                         itypes.append(TheanoToken.float_matrix)
                     else:
                         itypes.append(TheanoToken.int_matrix)
+            elif(s.is_hyper_param):
+                continue
+
+            elif(issubclass(s.__class__, Continuous)):
+                if(s.num_elements == -1):
+                    itypes.append(TheanoToken.float_scalar)
+                elif(s.num_elements==1):
+                    itypes.append(TheanoToken.single_element_float_vector)
+                else:
+                    itypes.append(TheanoToken.float_vector)
+
             else:
                 if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
@@ -103,7 +105,6 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     output = prog.output_type
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
-    var_names      = data_spec.var_names
     program        = prog.program
 
     
@@ -141,32 +142,32 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                     #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
-                            dist_a = prior[0][0].pymc3_dist(var_names[idx] + "1")
-                            dist_b = prior[0][1].pymc3_dist(var_names[idx] + "2")
+                            dist_a = prior[0][0].pymc3_dist(prior[0][0].name + "1", [])
+                            dist_b = prior[0][1].pymc3_dist(prior[0][1].name + "2", [])
                             axis = prior[1][0]
                             priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
                         else:
                             stacked = []
                             for i in range(len(prior[0])):
-                                stacked.append(prior[0][i].pymc3_dist(var_names[idx] + str(i)))
+                                stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i), []))
                             axis = prior[1][0]
                             priors.append( pm.math.stack(stacked, axis=axis ))
 
 
                     else:
                         if(prior.is_hyper_param):
-                            hyper_params.append((prior, var_names[idx]))
+                            hyper_params.append((prior, prior.name))
                         else:
                             params = prior.get_params()
                             hypers_for_prior = []
                             for p_idx in range(len(params)):
                                 p = params[p_idx]
-                                if(isinstance(p, str)):
+                                if(isinstance(p, Continuous)):
                                     for hyper in hyper_params:
-                                        if(p == hyper[1]):
+                                       if(p.name == hyper[1]):
                                             hypers_for_prior.append((hyper[0],hyper[1], p_idx))
                             
-                            priors.append(prior.pymc3_dist(var_names[idx], hypers_for_prior))
+                            priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
                 
                 if(program is not None):
                     output = pm.Deterministic("output", t.method(*priors) )
@@ -199,7 +200,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
         priors = []
         trace = {}
         for idx in range(num_specs):
-            name, dist = input_specs[idx].scipy_dist(var_names[idx])
+            name, dist = input_specs[idx].scipy_dist(input_sepcs[idx].name)
             dist = dist(draws)
             priors.append(dist)
             trace[name] = dist

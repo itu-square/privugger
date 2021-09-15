@@ -32,8 +32,9 @@ __all__ = [
 
 class Uniform(Continuous):
     
-    def __init__(self,lower=0, upper=1, num_elements=-1, is_hyper_param=False):
+    def __init__(self,name, lower=0, upper=1, num_elements=-1, is_hyper_param=False):
         self.lower = lower
+        self.name = name
         self.upper = upper
         self.num_elements = num_elements
         self.is_hyper_param = is_hyper_param
@@ -74,8 +75,9 @@ class Uniform(Continuous):
 
 class Normal(Continuous):
 
-    def __init__(self, mu=0, std=1, num_elements=-1, is_hyper_param=False):
+    def __init__(self,name, mu=0, std=1, num_elements=-1, is_hyper_param=False):
         self.mu = mu
+        self.name = name
         self.std = std
         self.num_elements = num_elements
         self.is_hyper_param = is_hyper_param
@@ -114,8 +116,9 @@ class Normal(Continuous):
 
 class Exponential(Continuous):
     
-    def __init__(self, lam=1, num_elements=-1, is_hyper_param=False):
+    def __init__(self,name, lam=1, num_elements=-1, is_hyper_param=False):
         self.lam=lam
+        self.name = name
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
 
@@ -135,8 +138,9 @@ class Exponential(Continuous):
 
 class Beta(Continuous):
     
-    def __init__(self, alpha=1, beta=1, num_elements=-1, is_hyper_param=False):
+    def __init__(self, name, alpha=1, beta=1, num_elements=-1, is_hyper_param=False):
         self.alpha=alpha
+        self.name = name
         self.beta=beta
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
