@@ -149,7 +149,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                         else:
                             stacked = []
                             for i in range(len(prior[0])):
-                                stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i), []))
+                                stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i+1), []))
                             axis = prior[1][0]
                             priors.append( pm.math.stack(stacked, axis=axis ))
 
