@@ -175,10 +175,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                 # Add observations
                 prog.execute_observations(prior, output)
                 trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
-                #f.truncate()
-                #f.close()
-                #os.remove("typed.py")
                 return trace
+            
     elif method == "scipy":
         if isinstance(program, str):
             import re

@@ -20,7 +20,18 @@ class Dataset:
         """
         self.input_specs = input_specs
 
-
+    def collect_distribution_names(self):
+        """
+        
+        Convenience method for collecting names associated with the distributions 
+        
+        """
+        names = []
+        for distribution in self.input_specs:
+            names.append(distribution.name)
+        return names
+        
+    
 class Program:
 
     def __init__(self, dataset, output_type, function):
@@ -54,6 +65,7 @@ class Program:
 
         """
         cons = "([0-9]*)([>=<]*)([a-zA-Z\s]*)([>=<]*)([0-9]*)"
+        constraints = constraints.replace(" ", "")
         vals = re.search(cons, constraints)
 
         # val1 cons1 name cons2 val2
@@ -64,21 +76,24 @@ class Program:
         cons2 = vals.group(4)
         val2 = vals.group(5)
 
-        if name.strip() in self.dataset.var_names:
+        var_names  = self.dataset.collect_distribution_names()
+        
+        if name.strip() in var_names:
             name = name.strip()
 
         partial1 = lambda x : None
         partial2 = lambda x: None
-        if name in self.dataset.var_names or "output" in name:
+        if name in var_names or "output" in name:
             if val1 != "" and cons1 != "":
                 partial1 = self.unwrap_constrain(int(val1), cons1)
+                print(partial1)
             
             if val2 != "" and cons2 != "":
                 partial2 = self.unwrap_constrain(int(val2), cons2,i=1)
         
             def inner(prior, output):
-                if name in self.dataset.var_names:
-                    idx = self.dataset.var_names.index(name)
+                if name in var_names:
+                    idx = var_names.index(name)
                     distribution = prior[idx]
                 else:
                     distribution = output
