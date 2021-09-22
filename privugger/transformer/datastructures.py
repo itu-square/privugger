@@ -1,14 +1,12 @@
 
-from privugger.transformer.method import infer
+#from privugger.transformer.method import infer
 import re
 import pymc3 as pm
 
-def program(pandas):
-    pass
 
-class Dataset():
+class Dataset:
 
-    def __init__(self, input_specs, var_names):
+    def __init__(self, input_specs):
 
         """
         Dataset represents the specs about the input data 
@@ -20,15 +18,10 @@ class Dataset():
         program_output: the output of the program as a standard type
         
         """
-        if(len(input_specs) != len(var_names)):
-            raise ValueError("There must be the same number of inputs and names")
-    
-        else:
-            self.input_specs           = input_specs
-            self.var_names             = var_names
+        self.input_specs = input_specs
 
 
-class Program():
+class Program:
 
     def __init__(self, dataset, output_type, function):
         """
@@ -112,7 +105,7 @@ class Program():
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner
     
-class Float():
+class Float:
     
     def __init__(self, dist= None,  name=None):
         """
@@ -131,7 +124,7 @@ class Float():
             self.name=name
 
    
-class Int():
+class Int:
 
     def __init__(self, dist=None,  name=None):
         """
