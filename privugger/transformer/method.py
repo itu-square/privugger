@@ -162,7 +162,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                             hypers_for_prior = []
                             for p_idx in range(len(params)):
                                 p = params[p_idx]
-                                if(isinstance(p, Continuous)):
+                                if(isinstance(p, Continuous) or isinstance(p, Discrete)):
                                     for hyper in hyper_params:
                                        if(p.name == hyper[1]):
                                             hypers_for_prior.append((hyper[0],hyper[1], p_idx))
