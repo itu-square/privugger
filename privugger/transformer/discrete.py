@@ -41,14 +41,21 @@ class Bernoulli(Discrete):
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
     
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, name, hypers):
+        p = self.p
+        if(len(hypers) == 1):
+                hyper_dist = hypers[0][0]
+                hyper_name = hypers[0][1]
+                p = hyper_dist.pymc3_dist(hyper_name, [])
+
         if(self.num_elements==-1):
-            return pm.Bernoulli(name, p=self.p)
+            return pm.Bernoulli(name, p=p)
         else:
-            return pm.Bernoulli(name, p=self.p, shape=self.num_elements)
+            return pm.Bernoulli(name, p=p, shape=self.num_elements)
 
     def get_params(self):
-        return (self.p)
+        return [self.p]
+    
     def scipy_dist(self, name):
         dist = (lambda siz : st.bernoulli(p=self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.bernoulli(p=self.p).rvs((self.num_elements, siz)))
         return name,dist
@@ -68,14 +75,21 @@ class Categorical(Discrete):
         self.name = name
         self.is_hyper_param = is_hyper_param
 
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, name, hypers):
+        p = self.p
+        if(len(hypers) == 1):
+            hyper_dist = hypers[0][0]
+            hyper_name = hypers[0][1]
+            p = hyper_dist.pymc3_dist(hyper_name, [])
+            
         if(self.num_elements==-1):
-            return pm.Categorical(name, p=self.p)
+            return pm.Categorical(name, p=p)
         else:
-            return pm.Categorical(name, p=self.p, shape=self.num_elements)
+            return pm.Categorical(name, p=p, shape=self.num_elements)
 
     def get_params(self):
-        return (self.p)
+        return [self.p]
+    
     def scipy_dist(self, name):
         theta = self.p
         dist = (lambda siz : st.rv_discrete(values=(range(len(theta)), theta)).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.rv_discrete(values=(range(len(theta)), theta)).rvs((self.num_elements, siz)))
@@ -91,13 +105,35 @@ class Binomial(Discrete):
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
     
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, namei, hypers):
+        n = self.n
+        p = self.p
+
+        if(len(hypers) == 1):
+                hyper_dist = hypers[0][0]
+                hyper_name = hypers[0][1]
+                idx = hypers[0][2]
+                if(idx == 0):
+                    n = hyper_dist.pymc3_dist(hyper_name, [])
+                else:
+                    p = hyper_dist.pymc3_dist(hyper_name, [])
+        elif(len(hypers) == 2):
+                hyper_dist_1 = hypers[0][0]
+                hyper_name_1 = hypers[0][1]
+                hyper_dist_2 = hypers[1][0]
+                hyper_name_2 = hypers[1][1]
+                n = hyper_dist_1.pymc3_dist(hyper_name_1, [])
+                p = hyper_dist_2.pymc3_dist(hyper_name_2, [])
+
+
         if(self.num_elements==-1):
-            return pm.Binomial(name, n=self.n, p=self.p)
+            return pm.Binomial(name, n=n, p=p)
         else:
-            return pm.Binomial(name, n=self.n, p=self.p, shape=self.num_elements)
+            return pm.Binomial(name, n=n, p=p, shape=self.num_elements)
+
     def get_params(self):
-        return(self.n, self.p)
+        return [self.n, self.p]
+    
     def scipy_dist(self, name):
         dist = (lambda siz : st.binom(n=self.n, p=self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.binom(n=self.n, p=self.p).rvs((self.num_elements, siz)))
         return name, dist
@@ -110,14 +146,33 @@ class DiscreteUniform(Discrete):
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
 
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, name, hypers):
+        lower = self.lower
+        upper = self.upper
+        if(len(hypers) == 1):
+                hyper_dist = hypers[0][0]
+                hyper_name = hypers[0][1]
+                idx = hypers[0][2]
+                if(idx == 0):
+                    lower = hyper_dist.pymc3_dist(hyper_name, [])
+                else:
+                    upper = hyper_dist.pymc3_dist(hyper_name, [])
+        elif(len(hypers) == 2):
+                hyper_dist_1 = hypers[0][0]
+                hyper_name_1 = hypers[0][1]
+                hyper_dist_2 = hypers[1][0]
+                hyper_name_2 = hypers[1][1]
+                lower = hyper_dist_1.pymc3_dist(hyper_name_1, [])
+                upper = hyper_dist_2.pymc3_dist(hyper_name_2, [])
+
+
         if(self.num_elements==-1):
-            return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper)
+            return pm.DiscreteUniform(name, lower=lower, upper=upper)
         else:
-            return pm.DiscreteUniform(name, lower=self.lower, upper=self.upper, shape=self.num_elements)
+            return pm.DiscreteUniform(name, lower=lower, upper=upper, shape=self.num_elements)
 
     def get_params(self):
-        return(self.lower, self.upper)
+        return [self.lower, self.upper]
 
     def scipy_dist(self, name):
         dist = (lambda siz : st.randint(lower=self.lower, upper=self.upper).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.randint(lower=self.lower, upper=self.upper).rvs((self.num_elements, siz)))
@@ -130,13 +185,20 @@ class Geometric(Discrete):
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
 
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, name, hypers):
+        p = self.p
+        if(len(hypers) == 1):
+            hyper_dist = hypers[0][0]
+            hyper_name = hypers[0][1]
+            p = hyper_dist.pymc3_dist(hyper_name, [])
+
         if(self.num_elements==-1):
-            return pm.Geometric(name, p=self.p)
+            return pm.Geometric(name, p=p)
         else:
-            return pm.Geometric(name, p=self.p, shape=self.num_elements)
+            return pm.Geometric(name, p=p, shape=self.num_elements)
+        
     def get_params(self):
-        return (self.p)
+        return [self.p]
     
     def scipy_dist(self, name):
         dist = (lambda siz : st.geom(self.p).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.geom(self.p).rvs((self.num_elements, siz)))
@@ -151,11 +213,17 @@ class Constant(Discrete):
         self.num_elements = num_elements
         self.is_hyper_param = is_hyper_param
 
-    def pymc3_dist(self, name):
+    def pymc3_dist(self, name, hypers):
+        val = self.val
+        if(len(hypers) == 1):
+            hyper_dist = hypers[0][0]
+            hyper_name = hypers[0][1]
+            val = hyper_dist.pymc3_dist(hyper_name, [])
+
         return pm.ConstantDist(name, self.val)
 
     def get_params(self):
-        return (self.val)
+        return [self.val]
     
     def scipy_dist(self, name):
         return lambda siz: np.array([self.val for _ in range(siz)])
