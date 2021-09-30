@@ -67,6 +67,10 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ['_static']
 
 
+# Privugger logo
+html_logo = "_static/img/privugger-logo-tiny.png"
+
+
 # -- Extension configuration -------------------------------------------------
 
 # -- Options for todo extension ----------------------------------------------
