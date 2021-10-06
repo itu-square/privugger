@@ -1,6 +1,9 @@
 
 
 class TheanoToken():
+    """
+    A enum-like class representing mappings from string values to theano types 
+    """
     int_vector = "VectorI"
     float_vector = "VectorF"
     int_scalar = "int"

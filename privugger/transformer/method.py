@@ -12,7 +12,7 @@ import arviz as az
 import os
 import importlib
 
-def from_distributions_to_theano(input_specs, output):
+def _from_distributions_to_theano(input_specs, output):
     
     itypes = []
     otype = []
@@ -73,12 +73,43 @@ def from_distributions_to_theano(input_specs, output):
     return (itypes, otype)
 
 def concatenate(distribution_a, distribution_b, axis=0):
+
+    """
+    
+    Parameters
+    -----------
+
+    distribution_a: The first distribution
+    
+    distribution_b: The second distribution
+    
+    axis: Int value giving the axis to stack
+     
+    Returns
+    -----------
+    tuple: A representation of stacked distributions that can be used to give to a dataset
+    """
+    
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
     return ((distribution_a, distribution_b), (axis, "concat"))
 
 
 def stack(distributions, axis=0):
+    """
+    
+    Parameters
+    -----------
+
+    distributions: A list of distributions
+    
+    axis: Int value giving the axis to stack
+     
+    Returns
+    -----------
+    tuple: A representation of stacked distributions that can be used to give to a dataset
+    """
+     
     #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
     return (distributions, (axis, "stack"))
@@ -101,8 +132,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     ----------
     trace: Trace produced by the probabilistic programming inference 
     """
-    data_spec = prog.dataset
-    output = prog.output_type
+    data_spec      = prog.dataset
+    output         = prog.output_type
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
     program        = prog.program
@@ -114,7 +145,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     if method == "pymc3":
         if(program is not  None):
             ftp = FunctionTypeDecorator()
-            decorators = from_distributions_to_theano(input_specs, output)
+            decorators = _from_distributions_to_theano(input_specs, output)
             
             lifted_program = ftp.lift(program, decorators)
             lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
