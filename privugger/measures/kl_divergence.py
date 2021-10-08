@@ -60,5 +60,8 @@ class Divergence:
             T_n = n/l_m
             T_m = m/l_m
             
-            P_I = [np.arange(-np.inf, P[lm])]
-            Q_I = [np.arange(-np.inf, Q[lm])]
+            P_I = p.iterate(p.openclosed(0, P[i]), step=1), p.iterate(p.openclosed(P[i], P[(2*i)]), step=, p.openclosed(P[(i*(T_m-1))], P[T_m])
+            
+            
+            
+        # Q_I = [np.arange(-np.inf, Q[l_m])]
