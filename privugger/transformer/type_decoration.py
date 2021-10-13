@@ -114,7 +114,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         
         function_def = self.get_function_def_ast(tree.body)
-        
+
         node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
 
         if(isinstance(tree.body[0], ast.Import)):

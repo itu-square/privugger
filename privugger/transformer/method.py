@@ -1,7 +1,7 @@
 
 from privugger.transformer.type_decoration import *
 from privugger.transformer.continuous import Continuous
-from privugger.transformer.discrete import Discrete 
+from privugger.transformer.discrete import Discrete, Constant
 from privugger.transformer.theano_types import TheanoToken
 from privugger.transformer.program_output import *
 
@@ -11,6 +11,10 @@ import theano.tensor as tt
 import arviz as az
 import os
 import importlib
+
+## Create a global pymc3 model
+global_model = pm.Model()
+global_priors = []
 
 def _from_distributions_to_theano(input_specs, output):
     
@@ -22,14 +26,22 @@ def _from_distributions_to_theano(input_specs, output):
         itypes.append(TheanoToken.float_matrix)
     else:
         for s in input_specs:
-                       
-            if(s.__class__ is tuple):
+            if(isinstance(s, str)):
+                if(s == "continuous"):
+                    itypes.append(TheanoToken.float_vector)
+                else:
+                    itypes.append(TheanoToken.int_vector)
+            elif(s.__class__ is tuple):
                 if(s[1][1] == "concat"):
+                    print(s)
                     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
                         itypes.append(TheanoToken.float_vector)
 
                     elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
                         itypes.append(TheanoToken.int_vector)
+                    elif(isinstance(s[0][0], Constant) or isinstance(s[0][1], Constant)):
+                        print("here")
+                        itypes.append(TheanoToken.float_vector)
                     else:
                         raise TypeError("When concatenating the distributions must have the same domain")
                 else:
@@ -72,7 +84,7 @@ def _from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def concatenate(distribution_a, distribution_b, axis=0):
+def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
 
     """
     
@@ -92,7 +104,12 @@ def concatenate(distribution_a, distribution_b, axis=0):
     
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
-    return ((distribution_a, distribution_b), (axis, "concat"))
+
+    with global_model as model:
+        val = pm.Deterministic(name, pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis ))
+        global_priors.append(val)
+    return type_of_dist
+    #return ((distribution_a, distribution_b), (axis, "concat"))
 
 
 def stack(distributions, axis=0):
@@ -162,14 +179,15 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
             ## Create model #
             #################
             
-            with pm.Model() as model:
+            with global_model as model:
                 
                 priors = []
                 hyper_params = []
                 
                 for idx in range(num_specs):
                     prior = input_specs[idx]
-                    
+                    if(isinstance(prior, str)):
+                        continue
                     #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
@@ -198,10 +216,12 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                                        if(p.name == hyper[1]):
                                             hypers_for_prior.append((hyper[0],hyper[1], p_idx))
                             
-                            priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                            #priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                            global_priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
                 
                 if(program is not None):
-                    output = pm.Deterministic("output", t.method(*priors) )
+                    #output = pm.Deterministic("output", t.method(*priors) )
+                    output = pm.Deterministic("output", t.method(*global_priors) )
 
                 # Add observations
                 prog.execute_observations(prior, output)

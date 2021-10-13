@@ -289,8 +289,10 @@ class Constant(Discrete):
             hyper_dist = hypers[0][0]
             hyper_name = hypers[0][1]
             val = hyper_dist.pymc3_dist(hyper_name, [])
-
-        return pm.ConstantDist(name, self.val)
+        if(self.num_elements==-1):
+            return pm.ConstantDist(name, self.val)
+        else:
+            return pm.ConstantDist(name, self.val, shape=self.num_elements)
 
     def get_params(self):
         return [self.val]
