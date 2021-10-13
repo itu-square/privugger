@@ -95,11 +95,15 @@ def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
     
     distribution_b: The second distribution
     
+    name: String name of the concatenated distribtions
+ 
+    type_of_dist: String that specifies if it is a continuous or discrete distribution
+    
     axis: Int value giving the axis to stack
      
     Returns
     -----------
-    tuple: A representation of stacked distributions that can be used to give to a dataset
+    String: the type of distribution
     """
     
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
@@ -112,24 +116,35 @@ def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
     #return ((distribution_a, distribution_b), (axis, "concat"))
 
 
-def stack(distributions, axis=0):
+def stack(distributions, name, type_of_dist, axis=0):
     """
     
     Parameters
     -----------
 
     distributions: A list of distributions
-    
+     
+    name: String name of the concatenated distribtions
+ 
+    type_of_dist: String that specifies if it is a continuous or discrete distribution
+
     axis: Int value giving the axis to stack
      
     Returns
     -----------
-    tuple: A representation of stacked distributions that can be used to give to a dataset
+    String: the type of distribution
     """
      
     #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
-    return (distributions, (axis, "stack"))
+    with global_model as model:
+        stacked = []
+        for i in range(len(distributions)):
+            stacked.append(distributions[i].pymc3_dist(distriutions[i].name, []))
+            global_priors.append(pm.Deterministic(name, pm.math.stack(stacked, axis=axis)))
+
+    return type_of_dist
+    #return (distributions, (axis, "stack"))
 
 def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     """
