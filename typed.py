@@ -3,9 +3,11 @@ import theano.tensor as tt
 import numpy as np
 
 
-def method(age):
+def method(priors):
 
-    @theano.compile.ops.as_op(itypes=[tt.dvector], otypes=[tt.dscalar])
-    def alpha(age):
-        return np.array(age.sum() / age.size)
-    return alpha(age)
+    @theano.compile.ops.as_op(itypes=[tt.dvector, tt.dvector, tt.dvector],
+        otypes=[tt.dscalar])
+    def function(priors):
+        return [np.mean(priors['age']), np.mean(priors['height']), np.mean(
+            priors['weight'])]
+    return function(priors)

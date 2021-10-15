@@ -1,67 +1,72 @@
 import numpy as np
-import portion as p
+import pandas as pd
 from scipy.special import kl_div, entr, rel_entr
+from scipy.stats import differential_entropy
 
+class Entropy():
+    
+    def __init__(self, P, Q):
+        self.P = P
+        self.Q = Q
 
-class Divergence:
-    """ 
-    Calculate the divergences between two probablility measures P and Q. 
-    Using scipy.special functions 'entr', 'rel_entr' and 'kl_div' for discrete data.
-    Using the estimation of the Radon-Nikodym derivative via a data-dependent partition as described in;
-    https://doi-org.ep.ituproxy.kb.dk/10.1109/TIT.2005.853314
-    """
-    
-    def __init__(self, data_class=None):
-        self.data_class = data_class
-    """
-    Parameter
-    ------------
-    Data Class : String
-        Data classification, 'discrete' or 'continuous'. Default Value is None.
-    """
-    
-    if self.data_class == 'discrete':
-        """
+        """ 
         Parameters
-        -----------
+        ------------
+        P = Array of samples  array or list
+        Q = Array of samples, array or list
 
-        P, Q : Array_like
-        Probability measures 
+        l_m = partion size, integer
+        step = 
 
-        Discrete 
-        ---------------------
-
-        entr(P) = -P*log(P) for P > 0, 0 for P = 0 and -∞ otherwise
-        
-        rel_entr(P, Q) = P*log(P/Q) for P>0 and Q>0, 0 for P = 0 and Q ≥ 0 and ∞  otherwise
-        
-        Kl_div(P, Q) = P*log(P/Q) - P + Q for P>0 and Q>0, 0 for P = 0 and Q ≥ 0 and ∞   otherwise
-        
         """
-        @property
-        def entropy(self, P):
-            return entr(P)    
-        
-        @property
-        def rel_entropy(self, P, Q):
-            return rel_entr(P, Q)
-        
-        @property
-        def kl_divergence(self, P, Q):
-            return  kl_div(P, Q) 
+ 
+ 
+ 
+    @classmethod
+    def discrete(cls, P, Q):
+        H = lambda P: entr(P)
+        H_cross = lambda P, Q: rel_entr(P, Q)
+        kl_divergence = lambda P, Q: kl_div(P, Q)
 
-    elif self.data_class == 'continous' :
+        return  pd.Series({'Entropy':sum(H(P)), 'Cross Entropy': sum(H_cross(P,Q)), 'KL divergence':sum(kl_divergence(P,Q))})
 
-        def kl_divergence(self, P, Q, l_m):
+  
+    @classmethod  
+    def continuous(cls, P, Q, l_m, dim=1, step=0.01):
+        
+        m = np.size(P)
+        n = np.size(Q)
+        
+        t_m = int(np.power((m/l_m),(1/dim)))
+
+        dt = l_m*(t_m-1)
+
+        def I_mid(X):
             
-            n = np.size(P)
-            m = np.size(Q)
+            i = l_m
+            j = 2*l_m
             
-            T_n = n/l_m
-            T_m = m/l_m
+            I = list(p.iterate(p.openclosed(X[i], X[j]), step=step))
             
-            P_I = p.iterate(p.openclosed(0, P[i]), step=1), p.iterate(p.openclosed(P[i], P[(2*i)]), step=, p.openclosed(P[(i*(T_m-1))], P[T_m])
-            
-            
-            
-        # Q_I = [np.arange(-np.inf, Q[l_m])]
+            while  j == dt is False:
+                i = 2*i
+                j = 2*j
+                I = I.append(list(p.iterate(p.openclosed(X[i], X[j]), step=step)))
+            else:
+                pass
+            return I
+        
+        I_start = lambda X: list(p.iterate(p.openclosed(min(X), X[l_m]), step=step))
+
+        I_end = lambda X: list(p.iterate(p.open(X[dt], max(X)), step=step))
+        
+        I = lambda X:[*I_start(X),*I_mid(X),*I_end(X)]
+
+        P_n = I(np.sort(P, axis=None))
+        Q_m = I(np.sort(Q, axis=None))
+
+        D_kl = sum([P_n[i]*np.log(P_n[i]/Q_m[i]) for i in range(0, np.size(P_n))])
+
+        return pd.Series({'KL Divergence': D_kl})
+       
+
