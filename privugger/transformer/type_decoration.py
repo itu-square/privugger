@@ -52,10 +52,17 @@ class FunctionTypeDecorator(ast.NodeTransformer):
 
     def lift(self, program, decorators):
         """
-        This funtion provides another path to program lifting, when the decoration types are given directly
-            
-        :param program: path to program
-        :param decorators: list of the decorator types
+        This funtion provides another path to program lifting, when the decoration types are given directly. 
+        The function lifts the program to be used within a pymc3 model.
+         
+        Parameters
+        ------------
+        program: path to program or a string of the entire program
+        decorators: list of the decorator types
+
+        Return
+        -----------
+        Python AST node with the lifted program
         
         """
 
@@ -107,7 +114,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         
         function_def = self.get_function_def_ast(tree.body)
-        
+
         node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
 
         if(isinstance(tree.body[0], ast.Import)):
@@ -404,14 +411,6 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if( isinstance(iterable_list[i], ast.FunctionDef)):
                 return (i)
         return (-1)
-
-
-
-    def split_tuple(self, arg):
-        pass
-
-    def split_list_tuples(self, arg):
-        pass
 
     
     def wrap_with_theano_import(self, program):

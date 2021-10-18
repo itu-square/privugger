@@ -20,11 +20,14 @@ class Dataset:
         """
         self.input_specs = input_specs
 
-    def collect_distribution_names(self):
+    def _collect_distribution_names(self):
         """
         
         Convenience method for collecting names associated with the distributions 
         
+        Returns
+        -------------
+        names: A list containing all the names of the random variables in the dataset
         """
         names = []
         for distribution in self.input_specs:
@@ -76,7 +79,7 @@ class Program:
         cons2 = vals.group(4)
         val2 = vals.group(5)
 
-        var_names  = self.dataset.collect_distribution_names()
+        var_names  = self.dataset._collect_distribution_names()
         
         if name.strip() in var_names:
             name = name.strip()
@@ -85,11 +88,11 @@ class Program:
         partial2 = lambda x: None
         if name in var_names or "output" in name:
             if val1 != "" and cons1 != "":
-                partial1 = self.unwrap_constrain(int(val1), cons1)
+                partial1 = self._unwrap_constrain(int(val1), cons1)
                 print(partial1)
             
             if val2 != "" and cons2 != "":
-                partial2 = self.unwrap_constrain(int(val2), cons2,i=1)
+                partial2 = self._unwrap_constrain(int(val2), cons2,i=1)
         
             def inner(prior, output):
                 if name in var_names:
@@ -104,7 +107,7 @@ class Program:
             raise ValueError("Observation was not known. Make sure that the name is part of the names in privugger.Datastructure")
 
 
-    def unwrap_constrain(self, value, cons, i=0):
+    def _unwrap_constrain(self, value, cons, i=0):
         if not i % 2:
             cons = cons.replace(">", "<")
         def inner(distribution):
