@@ -1,7 +1,7 @@
-Tutorial 1
+Tutorial on analyzing OpenDP programs
 ===================
 
 .. toctree::
    :maxdepth: 1
  
-   Tutorial.ipynb
+   Open-dp-Tutorial.ipynb

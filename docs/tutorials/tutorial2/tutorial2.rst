@@ -1,7 +1,7 @@
-Tutorial 2
+Tutorial on Sweeney like governor example
 ==========
 
 .. toctree::
    :maxdepth: 1
  
-   Tutorial.ipynb
+   Governor.ipynb
