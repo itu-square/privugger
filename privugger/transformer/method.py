@@ -1,7 +1,7 @@
 
 from privugger.transformer.type_decoration import *
 from privugger.transformer.continuous import Continuous
-from privugger.transformer.discrete import Discrete 
+from privugger.transformer.discrete import Discrete, Constant
 from privugger.transformer.theano_types import TheanoToken
 from privugger.transformer.program_output import *
 
@@ -12,7 +12,11 @@ import arviz as az
 import os
 import importlib
 
-def from_distributions_to_theano(input_specs, output):
+## Create a global pymc3 model
+global_model = pm.Model()
+global_priors = []
+
+def _from_distributions_to_theano(input_specs, output):
     
     itypes = []
     otype = []
@@ -22,14 +26,22 @@ def from_distributions_to_theano(input_specs, output):
         itypes.append(TheanoToken.float_matrix)
     else:
         for s in input_specs:
-                       
-            if(s.__class__ is tuple):
+            if(isinstance(s, str)):
+                if(s == "continuous"):
+                    itypes.append(TheanoToken.float_vector)
+                else:
+                    itypes.append(TheanoToken.int_vector)
+            elif(s.__class__ is tuple):
                 if(s[1][1] == "concat"):
+                    print(s)
                     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
                         itypes.append(TheanoToken.float_vector)
 
                     elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
                         itypes.append(TheanoToken.int_vector)
+                    elif(isinstance(s[0][0], Constant) or isinstance(s[0][1], Constant)):
+                        print("here")
+                        itypes.append(TheanoToken.float_vector)
                     else:
                         raise TypeError("When concatenating the distributions must have the same domain")
                 else:
@@ -72,16 +84,67 @@ def from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def concatenate(distribution_a, distribution_b, axis=0):
+def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
+
+    """
+    
+    Parameters
+    -----------
+
+    distribution_a: The first distribution
+    
+    distribution_b: The second distribution
+    
+    name: String name of the concatenated distribtions
+ 
+    type_of_dist: String that specifies if it is a continuous or discrete distribution
+    
+    axis: Int value giving the axis to stack
+     
+    Returns
+    -----------
+    String: the type of distribution
+    """
+    
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
-    return ((distribution_a, distribution_b), (axis, "concat"))
+
+    with global_model as model:
+        val = pm.Deterministic(name, pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis ))
+        global_priors.append(val)
+    return type_of_dist
+    #return ((distribution_a, distribution_b), (axis, "concat"))
 
 
-def stack(distributions, axis=0):
+def stack(distributions, name, type_of_dist, axis=0):
+    """
+    
+    Parameters
+    -----------
+
+    distributions: A list of distributions
+     
+    name: String name of the concatenated distribtions
+ 
+    type_of_dist: String that specifies if it is a continuous or discrete distribution
+
+    axis: Int value giving the axis to stack
+     
+    Returns
+    -----------
+    String: the type of distribution
+    """
+     
     #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
-    return (distributions, (axis, "stack"))
+    with global_model as model:
+        stacked = []
+        for i in range(len(distributions)):
+            stacked.append(distributions[i].pymc3_dist(distriutions[i].name, []))
+            global_priors.append(pm.Deterministic(name, pm.math.stack(stacked, axis=axis)))
+
+    return type_of_dist
+    #return (distributions, (axis, "stack"))
 
 def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     """
@@ -101,8 +164,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     ----------
     trace: Trace produced by the probabilistic programming inference 
     """
-    data_spec = prog.dataset
-    output = prog.output_type
+    data_spec      = prog.dataset
+    output         = prog.output_type
     num_specs      = len(data_spec.input_specs)
     input_specs    = data_spec.input_specs
     program        = prog.program
@@ -114,7 +177,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     if method == "pymc3":
         if(program is not  None):
             ftp = FunctionTypeDecorator()
-            decorators = from_distributions_to_theano(input_specs, output)
+            decorators = _from_distributions_to_theano(input_specs, output)
             
             lifted_program = ftp.lift(program, decorators)
             lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
@@ -131,14 +194,15 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
             ## Create model #
             #################
             
-            with pm.Model() as model:
+            with global_model as model:
                 
                 priors = []
                 hyper_params = []
                 
                 for idx in range(num_specs):
                     prior = input_specs[idx]
-                    
+                    if(isinstance(prior, str)):
+                        continue
                     #NOTE Tuple means that we are concatenating/stacking the distributions
                     if(prior.__class__ is tuple):
                         if(prior[1][1] == "concat"):
@@ -167,10 +231,12 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                                        if(p.name == hyper[1]):
                                             hypers_for_prior.append((hyper[0],hyper[1], p_idx))
                             
-                            priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                            #priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                            global_priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
                 
                 if(program is not None):
-                    output = pm.Deterministic("output", t.method(*priors) )
+                    #output = pm.Deterministic("output", t.method(*priors) )
+                    output = pm.Deterministic("output", t.method(*global_priors) )
 
                 # Add observations
                 prog.execute_observations(prior, output)

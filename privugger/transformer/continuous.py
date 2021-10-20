@@ -8,6 +8,9 @@ By specifying our own interface for distributions we could ideally hide which sp
 
 class Continuous():
 
+    """
+    An abstract class representing all the continuous distributions that privugger supports
+    """
     @abstractmethod
     def pymc3_dist(self, name, hypers):
         return None
@@ -33,6 +36,18 @@ __all__ = [
 class Uniform(Continuous):
     
     def __init__(self,name, lower=0, upper=1, num_elements=-1, is_hyper_param=False):
+
+        """
+        Class for the Uniform distribution 
+        Parameters
+        -----------
+        name: String of the name of the random variable
+        lower: int for the lower bound. Default: 0
+        upper: int for the upper bound. Default: 1
+        num_elements: int specifying number of RV's
+        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+        """
+        
         self.lower = lower
         self.name = name
         self.upper = upper
@@ -76,6 +91,17 @@ class Uniform(Continuous):
 class Normal(Continuous):
 
     def __init__(self,name, mu=0, std=1, num_elements=-1, is_hyper_param=False):
+
+        """
+        Class for the Gaussian distribution 
+        Parameters
+        -----------
+        name: String of the name of the random variable
+        mu: value for the mean of the distribution. Default: 0
+        std: value for the standard deviation. Default: 1
+        num_elements: int specifying number of RV's
+        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+        """
         self.mu = mu
         self.name = name
         self.std = std
@@ -117,6 +143,15 @@ class Normal(Continuous):
 class Exponential(Continuous):
     
     def __init__(self,name, lam=1, num_elements=-1, is_hyper_param=False):
+        """
+        Class for the Exponential distribution 
+        Parameters
+        -----------
+        name: String of the name of the random variable
+        lam: value for the lambda parameter. Default: 1
+        num_elements: int specifying number of RV's
+        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+        """
         self.lam=lam
         self.name = name
         self.num_elements=num_elements
@@ -144,6 +179,17 @@ class Exponential(Continuous):
 class Beta(Continuous):
     
     def __init__(self, name, alpha=1, beta=1, num_elements=-1, is_hyper_param=False):
+        """
+        Class for the Beta distribution 
+        Parameters
+        -----------
+        name: String of the name of the random variable
+        alpha: value for the alpha parameter. Default: 1
+        beta: value for the beta parameter. Default: 1
+        num_elements: int specifying number of RV's
+        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+        """
+
         self.alpha = alpha
         self.name  = name
         self.beta  = beta
