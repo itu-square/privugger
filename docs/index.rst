@@ -22,7 +22,6 @@ Furthermore, Privugger is equipped with a module to perform *automatic attacker 
    :maxdepth: 1
    :caption: Privugger Tutorials & Examples
 
-   tutorials/Tutorial.ipynb
    tutorials/Open-dp-Tutorial.ipynb
    tutorials/Governor.ipynb
 
