@@ -1,6 +1,3 @@
-Tutorial on analyzing OpenDP programs
-===================
-
 .. toctree::
    :maxdepth: 1
  

@@ -21,10 +21,10 @@ Furthermore, Privugger is equipped with a module to perform *automatic attacker 
 .. toctree::
    :maxdepth: 1
    :caption: Privugger Tutorials & Examples
-   :hidden:
 
-   tutorials/tutorial1/tutorial1
-   tutorials/tutorial2/tutorial2
+   tutorials/Tutorial.ipynb
+   tutorials/Open-dp-Tutorial.ipynb
+   tutorials/Governor.ipynb
 
 
 .. toctree::
