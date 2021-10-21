@@ -6,6 +6,14 @@ Privugger Transformer
    :undoc-members:
    :show-inheritance:
 
+datastructures module
+----------------------------------------------
+
+.. automodule:: privugger.transformer.datastructures
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 annotation\_types module
 ----------------------------------------------
 
