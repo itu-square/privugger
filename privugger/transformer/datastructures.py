@@ -35,7 +35,7 @@ class Dataset:
     
 class Program:
 
-    def __init__(self, dataset, output_type, function):
+    def __init__(self, name, dataset, output_type, function):
         """
         A class representing the privacy preserving program to be analysed.
 
@@ -46,10 +46,11 @@ class Program:
         program: The program to be analysed, either string to location program, lambda method or def function
         """
         if isinstance(dataset, Dataset):
-            self.dataset = dataset
-            self.output_type = output_type
-            self.program = function
-            self.observation = None
+            self.dataset              = dataset
+            self.output_type          = output_type
+            self.name                 = name
+            self.program              = function
+            self.observation          = None
             self.execute_observations = lambda a,b: None
         else:
             raise ValueError("The dataset has to be of type privugger.Dataset")

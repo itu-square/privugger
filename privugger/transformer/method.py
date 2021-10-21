@@ -69,7 +69,7 @@ def _from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.int_vector)
 
-    #NOTE: This gets the output type
+    #NOTE: This gets the output type.
     if(type(output).__name__ ==  "type"):
         if(output.__name__ == "Float"):
            otype.append(TheanoToken.float_scalar)
@@ -80,7 +80,13 @@ def _from_distributions_to_theano(input_specs, output):
            otype.append(TheanoToken.int_vector)
         elif(output.output.__name__ == "Float"): 
            otype.append(TheanoToken.float_vector)
+    else:
+        if(output.output.__name__ == "Int"):  
+           otype.append(TheanoToken.int_matrix)
+        elif(output.output.__name__ == "Float"): 
+           otype.append(TheanoToken.float_matrix)
 
+            
 
     return (itypes, otype)
 
@@ -236,7 +242,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                 
                 if(program is not None):
                     #output = pm.Deterministic("output", t.method(*priors) )
-                    output = pm.Deterministic("output", t.method(*global_priors) )
+                    output = pm.Deterministic(prog.name, t.method(*global_priors) )
 
                 # Add observations
                 prog.execute_observations(prior, output)
