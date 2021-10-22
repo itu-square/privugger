@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
+import portion as p
 from scipy.special import kl_div, entr, rel_entr
-from scipy.stats import differential_entropy
+
 
 class Entropy():
     
@@ -15,8 +16,9 @@ class Entropy():
         P = Array of samples  array or list
         Q = Array of samples, array or list
 
-        l_m = partion size, integer
-        step = 
+        l_m = Partion size, integer
+        dim = Dimension of sample, integer
+        step = Step size, integer or float
 
         """
  
