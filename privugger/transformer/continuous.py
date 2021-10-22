@@ -1,4 +1,5 @@
 import pymc3 as pm
+import torch as t
 from scipy import stats as st
 from abc import abstractmethod
 """
@@ -15,6 +16,10 @@ class Continuous():
     def pymc3_dist(self, name, hypers):
         return None
 	
+    @abstractmethod
+    def pytorch(self, name):
+        return None
+
     @abstractmethod
     def get_params(self):
     	return None
@@ -81,6 +86,13 @@ class Uniform(Continuous):
 	
     def get_params(self):
     	return [self.lower, self.upper]
+
+    def uniform(self, name):
+        low = t.torch(self.lower)
+        high = t.torch(self.upper)
+        sample_shape= t.Size([self.num_elements])
+        dist = t.distribution.uniform.Uniform(low, high).sample(sample_shape=sample_shape)
+        return name, dist
     
     def scipy_dist(self, name):
         dist = (lambda siz : st.uniform(self.lower, self.upper-self.lower).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.uniform(self.lower, self.upper-self.lower).rvs((self.num_elements, siz)))
@@ -132,6 +144,15 @@ class Normal(Continuous):
             return pm.Normal(name, mu=mu, sigma=std)
         else:
             return pm.Normal(name, mu=mu, sigma=std, shape=self.num_elements)
+
+
+    def pytorch(self, name):
+        mu = t.torch(self.mu)
+        std = t.torch(self.std)
+        sample_shape= t.Size([self.num_elements])
+        dist = t.distribution.normal.Normal(mu, std).sample(sample_shape=sample_shape)
+        return name, dist
+
     def get_params(self):
     	return [self.mu, self.std]
 
@@ -167,6 +188,12 @@ class Exponential(Continuous):
             return pm.Exponential(name, lam=lam)
         else:
             return pm.Exponential(name, lam=lam, shape=self.num_elements)
+    
+    def pytorch(self, name):
+        lam = t.torch(self.lam)
+        sample_shape= t.Size([self.num_elements])
+        dist = t.distribution.exponential.Exponential(lam).sample(sample_shape=sample_shape)
+        return name, dist
 
     def get_params(self):
     	return [self.lam]
@@ -220,6 +247,13 @@ class Beta(Continuous):
             return pm.Beta(name, alpha=self.alpha, beta=self.beta)
         else:
             return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
+    
+    def pytorch(self, name):
+        alpha = t.torch(self.alpha)
+        beta = t.torch(self.beta)
+        sample_shape= t.Size([self.num_elements])
+        dist = t.distribution.beta.Beta(alpha, beta).sample(sample_shape=sample_shape)
+        return name, dist
 	
     def get_params(self):
     	return [self.alpha, self.beta]
