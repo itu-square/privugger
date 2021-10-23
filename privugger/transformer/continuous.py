@@ -3,7 +3,6 @@ from scipy import stats as st
 from abc import abstractmethod
 """
 By specifying our own interface for distributions we could ideally hide which specific backend is used to model the distributions
-
 """
 
 class Continuous():
@@ -29,25 +28,28 @@ __all__ = [
     "Normal",
     "Exponential",
     "Beta"
-
 ]
 
 
 class Uniform(Continuous):
     
     def __init__(self,name, lower=0, upper=1, num_elements=-1, is_hyper_param=False):
+        """Class for the Uniform distribution 
 
-        """
-        Class for the Uniform distribution 
         Parameters
         -----------
-        name: String of the name of the random variable
-        lower: int for the lower bound. Default: 0
-        upper: int for the upper bound. Default: 1
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
-        
+        name: String 
+            of the name of the random variable
+        lower: int 
+            for the lower bound. Default: 0
+        upper: int 
+            for the upper bound. Default: 1
+        num_elements: int 
+            specifying number of RV's
+        is_hyper_param: Boolean 
+            specifying if this RV is used as a hyper parameter. Default: False
+
+        """        
         self.lower = lower
         self.name = name
         self.upper = upper

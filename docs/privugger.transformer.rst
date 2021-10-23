@@ -14,21 +14,21 @@ datastructures module
    :undoc-members:
    :show-inheritance:
 
-annotation\_types module
+continuous module
 ----------------------------------------------
 
-.. automodule:: privugger.transformer.annotation_types
+.. automodule:: privugger.transformer.continuous
    :members:
    :undoc-members:
    :show-inheritance:
 
-theano\_types module
-------------------------------------------
+discrete module
+----------------------------------------------
 
-.. automodule:: privugger.transformer.theano_types
+.. automodule:: privugger.transformer.discrete
    :members:
    :undoc-members:
-   :show-inheritance:
+   :show-inheritance:      
 
 type\_decoration module
 ---------------------------------------------
