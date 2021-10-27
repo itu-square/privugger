@@ -12,7 +12,7 @@ import arviz as az
 import os
 import importlib
 
-## Create a global pymc3 model
+## Create a global pymc3 model and list of priors
 global_model = pm.Model()
 global_priors = []
 
@@ -31,25 +31,27 @@ def _from_distributions_to_theano(input_specs, output):
                     itypes.append(TheanoToken.float_vector)
                 else:
                     itypes.append(TheanoToken.int_vector)
-            elif(s.__class__ is tuple):
-                if(s[1][1] == "concat"):
-                    print(s)
-                    if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
-                        itypes.append(TheanoToken.float_vector)
 
-                    elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
-                        itypes.append(TheanoToken.int_vector)
-                    elif(isinstance(s[0][0], Constant) or isinstance(s[0][1], Constant)):
-                        print("here")
-                        itypes.append(TheanoToken.float_vector)
-                    else:
-                        raise TypeError("When concatenating the distributions must have the same domain")
-                else:
+            #NOTE we sould delete the out-commented lines soon
+            #elif(s.__class__ is tuple):
+             #   if(s[1][1] == "concat"):
+              #      print(s)
+               #     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
+                #        itypes.append(TheanoToken.float_vector)
+
+                 #   elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
+                  #      itypes.append(TheanoToken.int_vector)
+                  #  elif(isinstance(s[0][0], Constant) or isinstance(s[0][1], Constant)):
+                   #     print("here")
+                   #     itypes.append(TheanoToken.float_vector)
+                    #else:
+                     #   raise TypeError("When concatenating the distributions must have the same domain")
+                #else:
                     #NOTE we are assuming that all of the distributions to be stacked have the same domain
-                    if(issubclass(s[0][0].__class__, Continuous)):
-                        itypes.append(TheanoToken.float_matrix)
-                    else:
-                        itypes.append(TheanoToken.int_matrix)
+                 #   if(issubclass(s[0][0].__class__, Continuous)):
+                  #      itypes.append(TheanoToken.float_matrix)
+                   # else:
+                    #    itypes.append(TheanoToken.int_matrix)
             elif(s.is_hyper_param):
                 continue
 
@@ -90,7 +92,7 @@ def _from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
+def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
 
     """
     
@@ -101,8 +103,6 @@ def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
     
     distribution_b: The second distribution
     
-    name: String name of the concatenated distribtions
- 
     type_of_dist: String that specifies if it is a continuous or discrete distribution
     
     axis: Int value giving the axis to stack
@@ -116,13 +116,13 @@ def concatenate(distribution_a, distribution_b, name, type_of_dist, axis=0):
     #if we are concatenating or stacking
 
     with global_model as model:
-        val = pm.Deterministic(name, pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis ))
+        val = pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis )
         global_priors.append(val)
     return type_of_dist
     #return ((distribution_a, distribution_b), (axis, "concat"))
 
 
-def stack(distributions, name, type_of_dist, axis=0):
+def stack(distributions,  type_of_dist, axis=0):
     """
     
     Parameters
@@ -130,8 +130,6 @@ def stack(distributions, name, type_of_dist, axis=0):
 
     distributions: A list of distributions
      
-    name: String name of the concatenated distribtions
- 
     type_of_dist: String that specifies if it is a continuous or discrete distribution
 
     axis: Int value giving the axis to stack
@@ -147,12 +145,35 @@ def stack(distributions, name, type_of_dist, axis=0):
         stacked = []
         for i in range(len(distributions)):
             stacked.append(distributions[i].pymc3_dist(distriutions[i].name, []))
-            global_priors.append(pm.Deterministic(name, pm.math.stack(stacked, axis=axis)))
+            global_priors.append(pm.math.stack(stacked, axis=axis))
 
     return type_of_dist
     #return (distributions, (axis, "stack"))
 
-def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
+
+def sample_prior(model, samples=50):
+
+    """
+    This method does the inference when provided a PyMC3 model
+
+    Parameters
+    -------------
+    model : PyMC3 model
+    
+    samples : int number of samples
+
+    Returns
+    ------------
+    
+    prior_checks : Samples from the priors 
+    
+    """
+    with model as sample_prior:
+        prior_checks = pm.sample_prior_predictive(samples=samples)
+
+        return prior_checks
+    
+def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=False):
     """
     
     Parameters
@@ -176,6 +197,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
     input_specs    = data_spec.input_specs
     program        = prog.program
 
+    global global_priors
+    global global_model
     
     #### ##################
     ###### Lift program ###
@@ -199,7 +222,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
             #################
             ## Create model #
             #################
-            
+            trace = None
             with global_model as model:
                 
                 priors = []
@@ -207,38 +230,25 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
                 
                 for idx in range(num_specs):
                     prior = input_specs[idx]
+
+                    #This is for the case when our prior comes from a concatenated/stacked distribution
                     if(isinstance(prior, str)):
                         continue
-                    #NOTE Tuple means that we are concatenating/stacking the distributions
-                    if(prior.__class__ is tuple):
-                        if(prior[1][1] == "concat"):
-                            dist_a = prior[0][0].pymc3_dist(prior[0][0].name + "1", [])
-                            dist_b = prior[0][1].pymc3_dist(prior[0][1].name + "2", [])
-                            axis = prior[1][0]
-                            priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
-                        else:
-                            stacked = []
-                            for i in range(len(prior[0])):
-                                stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i+1), []))
-                            axis = prior[1][0]
-                            priors.append( pm.math.stack(stacked, axis=axis ))
-
-
+                  
+                    if(prior.is_hyper_param):
+                        hyper_params.append((prior, prior.name))
                     else:
-                        if(prior.is_hyper_param):
-                            hyper_params.append((prior, prior.name))
-                        else:
-                            params = prior.get_params()
-                            hypers_for_prior = []
-                            for p_idx in range(len(params)):
-                                p = params[p_idx]
-                                if(isinstance(p, Continuous) or isinstance(p, Discrete)):
-                                    for hyper in hyper_params:
-                                       if(p.name == hyper[1]):
-                                            hypers_for_prior.append((hyper[0],hyper[1], p_idx))
+                        params = prior.get_params()
+                        hypers_for_prior = []
+                        for p_idx in range(len(params)):
+                            p = params[p_idx]
+                            if(isinstance(p, Continuous) or isinstance(p, Discrete)):
+                                for hyper in hyper_params:
+                                    if(p.name == hyper[1]):
+                                        hypers_for_prior.append((hyper[0],hyper[1], p_idx))
                             
-                            #priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
-                            global_priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                        #priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
+                        global_priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
                 
                 if(program is not None):
                     #output = pm.Deterministic("output", t.method(*priors) )
@@ -246,7 +256,14 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
 
                 # Add observations
                 prog.execute_observations(prior, output)
-                trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
+
+                if(return_model):
+                    return global_model
+                else:
+                    trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
+
+                global_priors = []
+                global_model = pm.Model()
                 return trace
             
     elif method == "scipy":
@@ -286,3 +303,17 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3"):
 
 
     
+  #NOTE Tuple means that we are concatenating/stacking the distributions
+                    #NOTE the following out-commented lines should be deleted soon
+                    #if(prior.__class__ is tuple):
+                     #   if(prior[1][1] == "concat"):
+                      #      dist_a = prior[0][0].pymc3_dist(prior[0][0].name + "1", [])
+                       #     dist_b = prior[0][1].pymc3_dist(prior[0][1].name + "2", [])
+                        #    axis = prior[1][0]
+                         #   priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
+                        #else:
+                         #   stacked = []
+                          #  for i in range(len(prior[0])):
+                           #     stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i+1), []))
+                           # axis = prior[1][0]
+                            #priors.append( pm.math.stack(stacked, axis=axis ))

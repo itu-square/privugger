@@ -24,3 +24,23 @@ the program does not effectively protect users' privacy.
 
 
 
+## Installation 
+
+Privugger is a tool written entirely in Python and can be installed using the pip packet manager.
+
+To install write following in command line: 
+
+`pip install privugger`
+
+Usage:
+
+`import privugger as pv`
+
+`x = pv.Normal(...)`
+
+`ds = pv.Dataset(...)`
+
+ `program = pv.Program(...)`
+
+`trace = pv.infer(...)`
+
