@@ -14,7 +14,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     
 setup(
     name='privugger',
-    version='0.0.6',
+    version='0.0.1',
     license='Apache license',
     author='Raúl Pardo, Mathias Valdbjørn Jørgensen, and Rasmus Carl Rønneberg',
     author_email='raup@itu.dk',
