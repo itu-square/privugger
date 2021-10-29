@@ -19,7 +19,7 @@ from scipy.special import kl_div, entr, rel_entr
  
  
 
-def discrete(cls, P, Q):
+def discrete(P, Q):
     H = lambda P: entr(P)
     H_cross = lambda P, Q: rel_entr(P, Q)
     kl_divergence = lambda P, Q: kl_div(P, Q)
@@ -28,7 +28,7 @@ def discrete(cls, P, Q):
 
   
   
-def continuous(cls, P, Q, l_m, dim=1, step=0.01):
+def continuous(P, Q, l_m, dim=1, step=0.01):
         
     m = np.size(P)
     n = np.size(Q)
