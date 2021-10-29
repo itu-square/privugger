@@ -1,5 +1,6 @@
 import pymc3 as pm
 import torch as t
+import pyro as pr
 from scipy import stats as st
 from abc import abstractmethod
 """
@@ -17,7 +18,7 @@ class Continuous():
         return None
 	
     @abstractmethod
-    def pytorch(self, name):
+    def pyro(self, name):
         return None
 
     @abstractmethod
@@ -87,11 +88,11 @@ class Uniform(Continuous):
     def get_params(self):
     	return [self.lower, self.upper]
 
-    def uniform(self, name):
-        low = t.torch(self.lower)
-        high = t.torch(self.upper)
+    def pyro(self, name):
+        low = t.tensor(self.lower)
+        high = t.tensor(self.upper)
         sample_shape= t.Size([self.num_elements])
-        dist = t.distribution.uniform.Uniform(low, high).sample(sample_shape=sample_shape)
+        dist = pr.distributions.Uniform(low, high).sample(sample_shape=sample_shape)
         return name, dist
     
     def scipy_dist(self, name):
@@ -146,11 +147,11 @@ class Normal(Continuous):
             return pm.Normal(name, mu=mu, sigma=std, shape=self.num_elements)
 
 
-    def pytorch(self, name):
-        mu = t.torch(self.mu)
-        std = t.torch(self.std)
+    def pyro(self, name):
+        mu = t.tensor(self.mu)
+        std = t.tensor(self.std)
         sample_shape= t.Size([self.num_elements])
-        dist = t.distribution.normal.Normal(mu, std).sample(sample_shape=sample_shape)
+        dist = pr.distributions.Normal(mu, std).sample(sample_shape=sample_shape)
         return name, dist
 
     def get_params(self):
@@ -189,10 +190,10 @@ class Exponential(Continuous):
         else:
             return pm.Exponential(name, lam=lam, shape=self.num_elements)
     
-    def pytorch(self, name):
-        lam = t.torch(self.lam)
+    def pyro(self, name):
+        lam = t.tensor(self.lam)
         sample_shape= t.Size([self.num_elements])
-        dist = t.distribution.exponential.Exponential(lam).sample(sample_shape=sample_shape)
+        dist = pr.distributions.Exponential(lam).sample(sample_shape=sample_shape)
         return name, dist
 
     def get_params(self):
@@ -248,11 +249,11 @@ class Beta(Continuous):
         else:
             return pm.Beta(name, alpha=self.alpha, beta=self.beta, shape=self.num_elements)
     
-    def pytorch(self, name):
-        alpha = t.torch(self.alpha)
-        beta = t.torch(self.beta)
+    def pyro(self, name):
+        alpha = t.tensor(self.alpha)
+        beta = t.tensor(self.beta)
         sample_shape= t.Size([self.num_elements])
-        dist = t.distribution.beta.Beta(alpha, beta).sample(sample_shape=sample_shape)
+        dist = pr.distributions.Beta(alpha, beta).sample(sample_shape=sample_shape)
         return name, dist
 	
     def get_params(self):

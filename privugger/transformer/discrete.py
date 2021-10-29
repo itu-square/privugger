@@ -1,6 +1,6 @@
-
-
 import pymc3 as pm
+import torch as t
+import pyro as pr
 from scipy import stats as st
 from abc import abstractmethod
 """
@@ -15,6 +15,10 @@ class Discrete():
     """
     @abstractmethod
     def pymc3_dist(self, name):
+        return None
+
+    @abstractmethod
+    def pyro(self, name):
         return None
 
     @abstractmethod
@@ -66,6 +70,12 @@ class Bernoulli(Discrete):
             return pm.Bernoulli(name, p=p)
         else:
             return pm.Bernoulli(name, p=p, shape=self.num_elements)
+    
+    def pyro(self, name):
+        prob = t.tensor(self.p)
+        sample_shape= t.Size([self.num_elements])
+        dist = pr.distributions.Bernoulli(probs=prob).sample(sample_shape=sample_shape)
+        return name, dist
 
     def get_params(self):
         return [self.p]
@@ -110,6 +120,12 @@ class Categorical(Discrete):
             return pm.Categorical(name, p=p)
         else:
             return pm.Categorical(name, p=p, shape=self.num_elements)
+    
+    def pyro(self, name):
+        prob= t.tensor(self.p)
+        sample_shape= t.Size([self.num_elements])
+        dist = pr.distributions.Categorical(probs=prob).sample(sample_shape=sample_shape)
+        return name, dist
 
     def get_params(self):
         return [self.p]
@@ -166,6 +182,13 @@ class Binomial(Discrete):
             return pm.Binomial(name, n=n, p=p)
         else:
             return pm.Binomial(name, n=n, p=p, shape=self.num_elements)
+    
+    def pyro(self, name):
+        n = t.tensor(self.n)
+        prob= t.tensor(self.p)
+        sample_shape= t.Size([self.num_elements])
+        dist = pr.distributions.Binomial(total_count=n , probs=prob).sample(sample_shape=sample_shape)
+        return name, dist
 
     def get_params(self):
         return [self.n, self.p]
@@ -218,7 +241,7 @@ class DiscreteUniform(Discrete):
             return pm.DiscreteUniform(name, lower=lower, upper=upper)
         else:
             return pm.DiscreteUniform(name, lower=lower, upper=upper, shape=self.num_elements)
-
+    
     def get_params(self):
         return [self.lower, self.upper]
 
@@ -255,6 +278,12 @@ class Geometric(Discrete):
             return pm.Geometric(name, p=p)
         else:
             return pm.Geometric(name, p=p, shape=self.num_elements)
+
+    def pyro(self, name):
+        prob= t.tensor(self.p)
+        sample_shape= t.Size([self.num_elements])
+        dist = pr.distributions.Geometric(probs=prob).sample(sample_shape=sample_shape)
+        return name, dist
         
     def get_params(self):
         return [self.p]
