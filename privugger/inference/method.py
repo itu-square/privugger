@@ -1,9 +1,9 @@
 
-from privugger.transformer.type_decoration import *
-from privugger.transformer.continuous import Continuous
-from privugger.transformer.discrete import Discrete, Constant
-from privugger.transformer.theano_types import TheanoToken
-from privugger.transformer.program_output import *
+from privugger.transformer.PyMC3.type_decoration import *
+from privugger.distributions.continuous import Continuous
+from privugger.distributions.discrete import Discrete, Constant
+from privugger.transformer.PyMC3.theano_types import TheanoToken
+from privugger.transformer.PyMC3.program_output import *
 
 import astor
 import pymc3 as pm

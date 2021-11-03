@@ -3,8 +3,8 @@ import astor
 import sys
 import inspect
 import os
-import privugger.transformer.annotation_types as at
-from privugger.transformer.theano_types import TheanoToken
+import privugger.transformer.PyMC3.annotation_types as at
+from privugger.transformer.PyMC3.theano_types import TheanoToken
 
 
 class FunctionTypeDecorator(ast.NodeTransformer):
