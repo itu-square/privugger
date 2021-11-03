@@ -32,26 +32,6 @@ def _from_distributions_to_theano(input_specs, output):
                 else:
                     itypes.append(TheanoToken.int_vector)
 
-            #NOTE we sould delete the out-commented lines soon
-            #elif(s.__class__ is tuple):
-             #   if(s[1][1] == "concat"):
-              #      print(s)
-               #     if(issubclass(s[0][0].__class__, Continuous) and issubclass(s[0][1].__class__, Continuous)):
-                #        itypes.append(TheanoToken.float_vector)
-
-                 #   elif(issubclass(s[0][0].__class__, Discrete) and issubclass(s[0][1].__class__, Discrete)):
-                  #      itypes.append(TheanoToken.int_vector)
-                  #  elif(isinstance(s[0][0], Constant) or isinstance(s[0][1], Constant)):
-                   #     print("here")
-                   #     itypes.append(TheanoToken.float_vector)
-                    #else:
-                     #   raise TypeError("When concatenating the distributions must have the same domain")
-                #else:
-                    #NOTE we are assuming that all of the distributions to be stacked have the same domain
-                 #   if(issubclass(s[0][0].__class__, Continuous)):
-                  #      itypes.append(TheanoToken.float_matrix)
-                   # else:
-                    #    itypes.append(TheanoToken.int_matrix)
             elif(s.is_hyper_param):
                 continue
 
@@ -303,17 +283,3 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
 
     
-  #NOTE Tuple means that we are concatenating/stacking the distributions
-                    #NOTE the following out-commented lines should be deleted soon
-                    #if(prior.__class__ is tuple):
-                     #   if(prior[1][1] == "concat"):
-                      #      dist_a = prior[0][0].pymc3_dist(prior[0][0].name + "1", [])
-                       #     dist_b = prior[0][1].pymc3_dist(prior[0][1].name + "2", [])
-                        #    axis = prior[1][0]
-                         #   priors.append( pm.math.concatenate( (dist_a, dist_b), axis=axis) )
-                        #else:
-                         #   stacked = []
-                          #  for i in range(len(prior[0])):
-                           #     stacked.append(prior[0][i].pymc3_dist(prior[0][i].name + str(i+1), []))
-                           # axis = prior[1][0]
-                            #priors.append( pm.math.stack(stacked, axis=axis ))
