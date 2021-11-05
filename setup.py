@@ -1,6 +1,10 @@
 from setuptools import setup, find_packages
- 
 
+
+#
+#NOTE: whenever we publish a new version come in here and bump up the version number first!
+# Our version number follows the convention of 3 numbers: MAJOR (new api), MINOR (added functionality), PATCH (bug fix)
+#
 #pip install -e . to test locally before publishing
 #build command: python3 setup.py bdist_wheel sdist
 #push to PyPi command: twine upload dist/*

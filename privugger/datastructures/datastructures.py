@@ -12,7 +12,7 @@ class Dataset:
         Parameters
         -------------
         input_spec: specification about the distributions of the input given as a list of distributions
-        var_names: names associated with each distribution
+
         program_output: the output of the program as a standard type
         
         """

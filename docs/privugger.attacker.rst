@@ -1,12 +1,6 @@
 Attacker Generation
 ===================
 
-.. automodule:: privugger.attacker
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 Distributions module
 --------------------
 
