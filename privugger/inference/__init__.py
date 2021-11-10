@@ -1,1 +1,1 @@
-from privugger.inference.method import *
+from privugger.inference.inference import *
