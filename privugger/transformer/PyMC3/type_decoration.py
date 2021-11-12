@@ -1,9 +1,10 @@
 import ast
 import astor
 import sys
-import argparse
-import privugger.transformer.annotation_types as at
-from privugger.transformer.theano_types import TheanoToken
+import inspect
+import os
+import privugger.transformer.PyMC3.annotation_types as at
+from privugger.transformer.PyMC3.theano_types import TheanoToken
 
 
 class FunctionTypeDecorator(ast.NodeTransformer):
@@ -26,22 +27,106 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if(isinstance(tree[i], ast.FunctionDef)):
                 return tree[i]
         raise TypeError("did not find any function definition in program")
+    
+    
+    def get_function_return(self, body):
+        
+        for ast_node in body:
+            if(isinstance(ast_node, ast.Return)):
+                return ast_node
+        raise TypeError("did not find any Return")
+
+    def simple_method_wrap(self, program, name, args):
+        
+        arg_identifiers = []
+        for a in args.args:
+            arg_identifiers.append(a.arg)
+
+        #func_returns = self.get_function_return(program.body)
+        returns = ast.Return(value=ast.Call(args=[ast.arguments(args=arg_identifiers, defaults=[], vararg=None, kwarg=None)],func=ast.Name(id=name, ctx=ast.Load()), keywords=[]))
+        
+        new_function = ast.Module(body=[ast.FunctionDef(name='method', decorator_list=[], args=args, body=[program, returns])])
+        return new_function
+        #print(astor.to_source(new_function))
+        #print(ast.dump(new_function))
 
     def lift(self, program, decorators):
         """
-        This funtion provides another path to program lifting, when the decoration types are given directly
-            
-        :param program: path to program
-        :param decorators: list of the decorator types
+        This funtion provides another path to program lifting, when the decoration types are given directly. 
+        The function lifts the program to be used within a pymc3 model.
+         
+        Parameters
+        ------------
+        program: path to program or a string of the entire program
+        decorators: list of the decorator types
+
+        Return
+        -----------
+        Python AST node with the lifted program
         
         """
-        tree = ast.parse(open(program).read())
-        #print(ast.dump(tree))
+
+        #NOTE This is for when the program is given as a path to the file
+        if(isinstance(program, str)):
+            file = open(program)
+            tree = ast.parse(file.read())
+            file.close()
+
+        else:
+            res = "".join(inspect.getsourcelines(program)[0])
+            if "lambda" in res:
+                res = res.replace(" ", "")
+                start = res.find("lambda")
+                end_draws = res.find("draws")
+                end_chains = res.find("chains")
+                end_cores = res.find("cores")
+
+                #NOTE this is when we only use the default values
+                if(end_draws == -1 and end_chains==-1 and end_cores == -1):
+
+                    #TODO There are bugs if the program is defined elsewhere and ends with ")"
+                    end = len(res)
+                    
+                    res = res[start:end-1].strip("\\n")
+
+                else:
+                    values = [end_draws, end_chains, end_cores]
+                    #NOTE filter all the values that are not set 
+                    positive_values = list(filter(lambda x: x != -1, values))
+                    end = min(positive_values)
+                    res = res[start:end-1].strip("\\n")
+                
+            if("lambda" == res[:6]):
+                form = res.strip().split(":")
+                res = f"def function({form[0][6:]}): \n return {form[1]}"
+
+            elif("def" != res[:3]):
+                raise TypeError("The program needs to be a path to a file, a lambda or a function")
+
+            with open("temp.py", "w") as file:
+                file.write(res)
+            tree = ast.parse(open("temp.py").read())
+
+            os.remove("temp.py")
+        
+        #if("lambda")
+        
+        
+        
         function_def = self.get_function_def_ast(tree.body)
-        #print(decorators[0])
-        #print(decorators[1][0])
+
         node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
-        return node
+
+        if(isinstance(tree.body[0], ast.Import)):
+            imports = tree.body[0]
+            wrapped_node = self.simple_method_wrap(node, tree.body[1].name, tree.body[1].args)
+            wrapped_node.body.insert(0, imports)
+            
+            
+        else:
+            wrapped_node = self.simple_method_wrap(node, tree.body[0].name, tree.body[0].args)
+        
+        return wrapped_node
 
     
     def translate_type(self, p_type):
@@ -77,6 +162,12 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         elif(p_type=='MatrixD'):
             return 'dmatrix'
 
+        elif(p_type=='Single_element_VectorF'):
+            return 'TensorType(\'float64\', (True,))'
+
+        elif(p_type=='Single_element_VectorI'):
+            return 'TensorType(\'int64\', (True,))'
+        
         else:
             raise TypeError("Cannot translate type to any theano type")
 
@@ -105,7 +196,8 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if(isinstance(body[i], ast.Return)):
                 return_list.append((body[i], i))
             else:
-                print(body[i])
+                pass
+                #print(body[i])
         if(len(return_list) > 0):
             return return_list
         else:
@@ -320,21 +412,13 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 return (i)
         return (-1)
 
-
-
-    def split_tuple(self, arg):
-        pass
-
-    def split_list_tuples(self, arg):
-        pass
-
     
     def wrap_with_theano_import(self, program):
 
         theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
         theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import, program])
+        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import,  program])
         
         return new_program
 
