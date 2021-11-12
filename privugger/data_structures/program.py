@@ -1,4 +1,4 @@
-from privugger.datastructures.dataset import *
+from privugger.data_structures.dataset import *
 
 
 class Program:
