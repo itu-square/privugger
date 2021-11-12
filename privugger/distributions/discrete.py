@@ -38,17 +38,24 @@ __all__ = [
 
 #NOTE the convention is that num_elements -1 means that it is not set 
 class Bernoulli(Discrete):
+    """
+    Class for the Bernoulli distribution
+   
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    p: float value [0,1] giving the probability. Default: 0.5
+    
+    num_elements: int specifying number of RV's
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
 
     def __init__(self,name, p=0.5, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Bernoulli distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        p: float value [0,1] giving the probability. Default: 0.5
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
+
 
         self.p = p
         self.name =name
@@ -77,18 +84,26 @@ class Bernoulli(Discrete):
 
 
 class Categorical(Discrete):
+
+    """
+    Class for the Categorical distribution
+    
+    Attributes 
+    -----------
+   
+    name: String of the name of the random variable
+   
+    p: Float list of probabilities
+   
+    num_elements: int specifying number of RV's
+   
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+   
+    """
+
+
     
     def __init__(self, name, p=None, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Categorical distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        p: Float list of probabilities
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
-
 
         if (p==None):
             raise TypeError("please specify p")
@@ -121,19 +136,28 @@ class Categorical(Discrete):
 
 
 class Binomial(Discrete):
+
+    """
+    Class for the Binomial distribution
+    
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    n: int specifying the number of trials. Default: 2
+    
+    p: float value [0,1] giving the probability. Default: 0.5
+    
+    num_elements: int specifying number of RV's
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
+
+
     
     def __init__(self, name, n=2, p=0.5, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Binomial distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        n: int specifying the number of trials. Default: 2
-        p: float value [0,1] giving the probability. Default: 0.5
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
-
 
         self.n=n
         self.name = name
@@ -175,17 +199,27 @@ class Binomial(Discrete):
         return name, dist
 
 class DiscreteUniform(Discrete):
+
+    """
+    Class for the Discrete Uniform distribution
+    
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    lower: int value giving the lower bound of the values. Default: 0
+    
+    upper: ine value giving the upper bound of the values. Default: 1
+    
+    num_elements: int specifying number of RV's
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
+
     def __init__(self, name, lower=0, upper=1, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Discrete Uniform distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        lower: int value giving the lower bound of the values. Default: 0
-        upper: ine value giving the upper bound of the values. Default: 1
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
+  
 
 
         self.lower = lower
@@ -227,19 +261,27 @@ class DiscreteUniform(Discrete):
         return name, dist
 
 class Geometric(Discrete):
+
+    """
+    Class for the Geometric distribution
+    
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    p: float value [0,1] giving the probability. Default: 0.5
+    
+    num_elements: int specifying number of RV's
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
+
+
     
     def __init__(self, p=0.5, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Geometric distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        p: float value [0,1] giving the probability. Default: 0.5
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
-
-
+   
         self.p=p
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
@@ -265,18 +307,26 @@ class Geometric(Discrete):
 
 
 class Constant(Discrete):
+
+    """
+    Class for the Constant distribution
+    
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    val: The constant value 
+    
+    num_elements: int specifying number of RV's
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
+
+
     
     def __init__(self, name, val, num_elements=-1, is_hyper_param=False):
-        """
-        Class for the Constant distribution
-        Parameters
-        -----------
-        name: String of the name of the random variable
-        val: The constant value 
-        num_elements: int specifying number of RV's
-        is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
-        """
-
 
         self.val = val
         self.name = name

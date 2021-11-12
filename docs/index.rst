@@ -33,8 +33,12 @@ Furthermore, Privugger is equipped with a module to perform *automatic attacker 
    :hidden:
 	     
    privugger.transformer
+   privugger.datastructures
+   privugger.distributions
+   privugger.inference
    privugger.measures
    privugger.attacker
+   
 
 
 Indices and tables

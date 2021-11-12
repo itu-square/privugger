@@ -1,38 +1,6 @@
-import re
-import pymc3 as pm
+from privugger.data_structures.dataset import *
 
 
-class Dataset:
-
-    def __init__(self, input_specs):
-
-        """
-        Dataset represents the specs about the input data 
-        
-        Parameters
-        -------------
-        input_spec: specification about the distributions of the input given as a list of distributions
-        var_names: names associated with each distribution
-        program_output: the output of the program as a standard type
-        
-        """
-        self.input_specs = input_specs
-
-    def _collect_distribution_names(self):
-        """
-        
-        Convenience method for collecting names associated with the distributions 
-        
-        Returns
-        -------------
-        names: A list containing all the names of the random variables in the dataset
-        """
-        names = []
-        for distribution in self.input_specs:
-            names.append(distribution.name)
-        return names
-        
-    
 class Program:
 
     def __init__(self, name, dataset, output_type, function):
@@ -154,43 +122,3 @@ class Program:
             else:
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner
-    
-class Float:
-    
-    def __init__(self, dist= None,  name=None):
-        """
-        Float represents a floating point value drawn from a spcified distribution
-    
-        Parameters
-        -----------
-        dist: distribution 
-        name: name associated with distrbution
-        
-        """
-        self.dist=dist
-        if(name is None):
-            raise ValueError("name must be specified")
-        else:
-            self.name=name
-
-   
-class Int:
-
-    def __init__(self, dist=None,  name=None):
-        """
-        Int represents an integer value drawn from a spcified distribution
-
-        Parameters
-        -----------
-        dist: distribution 
-        name: name associated with distrbution
-
-        """
-        self.dist = dist
-        if(name is None):
-            raise ValueError("name must be specified")
-        else:
-            self.name = name
-
-
-            

@@ -1,9 +1,9 @@
 
-from privugger.transformer.type_decoration import *
-from privugger.transformer.continuous import Continuous
-from privugger.transformer.discrete import Discrete, Constant
-from privugger.transformer.theano_types import TheanoToken
-from privugger.transformer.program_output import *
+from privugger.transformer.PyMC3.type_decoration import *
+from privugger.distributions.continuous import Continuous
+from privugger.distributions.discrete import Discrete, Constant
+from privugger.transformer.PyMC3.theano_types import TheanoToken
+from privugger.transformer.PyMC3.program_output import *
 
 import astor
 import pymc3 as pm
@@ -89,7 +89,7 @@ def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
      
     Returns
     -----------
-    String: the type of distribution
+    Type of distribution: String
     """
     
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
@@ -116,7 +116,7 @@ def stack(distributions,  type_of_dist, axis=0):
      
     Returns
     -----------
-    String: the type of distribution
+    Type of distribution: String
     """
      
     #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
@@ -145,7 +145,7 @@ def sample_prior(model, samples=50):
     Returns
     ------------
     
-    prior_checks : Samples from the priors 
+    Samples from the priors: Priors
     
     """
     with model as sample_prior:
@@ -167,9 +167,13 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
     draws: Int number of draws. Default 2
 
+    method: String specifying which backend to use
+
+    return_model: Boolean. Returns the probabilistic model if true and the trace if false
+
     Returns
     ----------
-    trace: Trace produced by the probabilistic programming inference 
+    Trace produced by the probabilistic programming inference: Arviz trace
     """
     data_spec      = prog.dataset
     output         = prog.output_type

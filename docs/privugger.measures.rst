@@ -1,12 +1,6 @@
 Privugger Measures
 ==================
 
-.. automodule:: privugger.measures
-   :members:
-   :undoc-members:
-   :show-inheritance:
-		
-
 mutual_information
 ------------------
 
