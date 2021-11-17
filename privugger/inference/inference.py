@@ -183,7 +183,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
     global global_priors
     global global_model
-    
+    global_model = pm.Model()
     #### ##################
     ###### Lift program ###
     #######################
@@ -207,7 +207,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
             ## Create model #
             #################
             trace = None
-            with global_model as model:
+            with global_model:
                 
                 priors = []
                 hyper_params = []
@@ -247,7 +247,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                     trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
 
                 global_priors = []
-                global_model = pm.Model()
+                del global_model
+                #global_model = pm.Model()
                 return trace
             
     elif method == "scipy":
