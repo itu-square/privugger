@@ -15,4 +15,4 @@ jobs:
     steps:
     - name: Test with pytest
       run: |
-        python3 ../../../test.py
+        python3 ../../../unit-test/test.py
