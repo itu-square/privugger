@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test with pytest
+    - name: Test with pytest
       run: |
-        python3 ../../unit-test/test.py
+        python3 unit-test/test.py
