@@ -10,7 +10,7 @@ import numpy as np
 
 
 #It appears that this is the way to do it when on Linux
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("../.."))
 
 import privugger as pv
 import unittest
