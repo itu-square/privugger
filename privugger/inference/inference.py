@@ -184,6 +184,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
     global global_priors
     global global_model
     global_model = pm.Model()
+    global_priors = []
     #### ##################
     ###### Lift program ###
     #######################
@@ -246,8 +247,9 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                 else:
                     trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
 
-                global_priors = []
+                
                 del global_model
+                del global_priors
                 #global_model = pm.Model()
                 return trace
             

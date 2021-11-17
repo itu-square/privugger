@@ -10,14 +10,19 @@ import numpy as np
 
 
 #It appears that this is the way to do it when on Linux
-sys.path.append(os.path.join("../.."))
+#sys.path.append(os.path.join("../.."))
 
 import privugger as pv
 import unittest
 
-class TestProbabilityGenerators(unittest.TestCase):
-    program = "average_age.py"
+program_alpha = "privugger/test/alpha.py"
+program_addition = "privugger/test/addition.py"
+program_multiplication = "privugger/test/multiplication.py"
+program_identity = "privugger/test/identity.py"
+    
 
+class TestProbabilityGenerators(unittest.TestCase):
+    
     def create_file(self, f):
     ## SAVE TO FILE
         res = "".join(inspect.getsourcelines(f)[0])
@@ -47,17 +52,19 @@ class TestProbabilityGenerators(unittest.TestCase):
         # Create dataset and specify program output
         ds = pv.Dataset(input_specs = [a,b])
 
-        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function="addition.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_addition)
         #Program
         # self.create_file(lambda a,b: a+b)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
+        os.remove("typed.py")
         for a,b, o in zip(trace.posterior["age"].values, trace.posterior["height"].values, trace.posterior["output"].values):
             for i in range(len(a)): 
                 self.assertEqual(a[i]+b[i], o[i])
         # os.remove("temp.py")
+
 
     def test_multi_samples_correct_order(self):
         """
@@ -73,13 +80,14 @@ class TestProbabilityGenerators(unittest.TestCase):
         #Program
         # self.create_file(lambda a,b: a*b)
 
-        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function="multiplication.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_multiplication)
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
+        os.remove("typed.py")
         for a,b, o in zip(trace.posterior["age"], trace.posterior["height"], trace.posterior["output"]):
             for i in range(len(a)):
                 self.assertEqual(a[i]*b[i], o[i])
-        # os.remove("temp.py")
+
 
     def test_uniform_cutoff(self):
         """
@@ -91,13 +99,14 @@ class TestProbabilityGenerators(unittest.TestCase):
         # Create dataset and specify program output
         ds = pv.Dataset(input_specs = [a])
 
-        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function="identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_identity)
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
+        os.remove("typed.py")
         for ai, oi in zip(trace.posterior["age"], trace.posterior["output"]):
             for i in range(len(ai)):
                 self.assertTrue(50 >= ai[i] >= 10)
@@ -113,17 +122,19 @@ class TestProbabilityGenerators(unittest.TestCase):
         # Create dataset and specify program output
         ds = pv.Dataset(input_specs = [a])
 
-        prog = pv.Program("output", dataset=ds, output_type=pv.Int, function="identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Int, function=program_identity)
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
+        os.remove("typed.py")
         for ai, oi in zip(trace.posterior["age"], trace.posterior["output"]):
             for i in range(len(ai)):
                 self.assertTrue(50 >= ai[i] >= 10)
                 self.assertTrue(50 >= oi[i] >= 10)
+
             
     def test_k_samples_gives_k_samples(self):
         """
@@ -138,13 +149,14 @@ class TestProbabilityGenerators(unittest.TestCase):
         ds = pv.Dataset(input_specs = [age])
 
         #Program
-        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function="identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_identity)
 
         # Call infer
         trace = pv.infer(prog, draws= sample_size, cores=1, chains=1)
-
+        os.remove("typed.py")
         self.assertEqual(len(trace.posterior["age"][0]), sample_size)
         self.assertEqual(len(trace.posterior["output"][0]), sample_size)
+        
 
     def test_constraints_greater_than_works(self):
         """
@@ -160,15 +172,17 @@ class TestProbabilityGenerators(unittest.TestCase):
         ds   = pv.Dataset(input_specs = [age])
 
         # For now output type can be: Int, Float, List(Float), List(Int)
-        program = pv.Program("output", dataset=ds, output_type=pv.Float, function="alpha.py")
+        program = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_alpha)
 
         # Add observations
         program.add_observation("57>output>56")
 
         # Call infer and specify program output
         trace = pv.infer(program, cores=2, draws=1000)
+        os.remove("typed.py")
 
         self.assertTrue(all(57 > (np.array(trace.posterior["output"] > 56).flatten())))
+
 
 if __name__ == '__main__':
     unittest.main()
