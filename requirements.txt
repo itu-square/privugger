@@ -8,3 +8,4 @@ matplotlib>=3.4.1
 scikit_learn>=0.24.2
 theano>=1.0.5
 pytest>=6.2.5
+portion>=2.2.0
