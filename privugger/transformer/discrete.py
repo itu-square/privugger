@@ -241,13 +241,31 @@ class DiscreteUniform(Discrete):
             return pm.DiscreteUniform(name, lower=lower, upper=upper)
         else:
             return pm.DiscreteUniform(name, lower=lower, upper=upper, shape=self.num_elements)
-    
+    """
+    class PyroDist(pr.distributions.TorchDistribution):
+        arg_constraints = {"Lower": constraints.positive, "Upper": constraints.positive}
+        support = constraints.real_vector
+        
+        def __init__(self, lower, upper, num_elements):
+            self.lower, self.upper, self.num_elements = broadcast_all(lower, upper, num_elements)
+            self.disu = t.randint(lower, upper, (num_elements, ))
+        super().__init__(event_shape = (num_elements, ))
+
+        def sample(self, sample_shape=()):
+            u = self.mvn.sample(sample_shape)
+            u0, u1 = u[..., 0], u[..., 1]
+            a, b = self.a, self.b
+            x = a * u0
+            y = (u1 / a) + b * (u0 ** 2 + a ** 2)
+            return torch.stack([x, y], -1)
+
     def get_params(self):
         return [self.lower, self.upper]
 
     def scipy_dist(self, name):
         dist = (lambda siz : st.randint(lower=self.lower, upper=self.upper).rvs(siz)) if self.num_elements == -1 else (lambda siz: st.randint(lower=self.lower, upper=self.upper).rvs((self.num_elements, siz)))
         return name, dist
+    """
 
 class Geometric(Discrete):
     
