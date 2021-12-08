@@ -3,7 +3,6 @@ __pycache__/
 .hypothesis/
 .ipynb_checkpoints/
 .vscode/
-*.html
 *.pdf
 *.priv
 *.png
