@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>privugger.inference.method &mdash; Privugger  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Privugger
+            <img src="../../../_static/privugger-logo-tiny.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Privugger Tutorials &amp; Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Tutorial.html">Getting started with privugger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Open-dp-Tutorial.html">Example of using Privugger on OpenDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Governor.html">Governor tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API and Developer Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.transformer.html">Privugger Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.datastructures.html">Privugger Datastructures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.distributions.html">Privugger Distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.inference.html">Privugger Inference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.measures.html">Privugger Measures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.attacker.html">Attacker Generation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Privugger</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>privugger.inference.method</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for privugger.inference.method</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">from</span> <span class="nn">privugger.transformer.PyMC3.type_decoration</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">privugger.distributions.continuous</span> <span class="kn">import</span> <span class="n">Continuous</span>
+<span class="kn">from</span> <span class="nn">privugger.distributions.discrete</span> <span class="kn">import</span> <span class="n">Discrete</span><span class="p">,</span> <span class="n">Constant</span>
+<span class="kn">from</span> <span class="nn">privugger.transformer.PyMC3.theano_types</span> <span class="kn">import</span> <span class="n">TheanoToken</span>
+<span class="kn">from</span> <span class="nn">privugger.transformer.PyMC3.program_output</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">import</span> <span class="nn">astor</span>
+<span class="kn">import</span> <span class="nn">pymc3</span> <span class="k">as</span> <span class="nn">pm</span>
+<span class="kn">import</span> <span class="nn">theano.tensor</span> <span class="k">as</span> <span class="nn">tt</span>
+<span class="kn">import</span> <span class="nn">arviz</span> <span class="k">as</span> <span class="nn">az</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+
+<span class="c1">## Create a global pymc3 model and list of priors</span>
+<span class="n">global_model</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+<span class="n">global_priors</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">def</span> <span class="nf">_from_distributions_to_theano</span><span class="p">(</span><span class="n">input_specs</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    
+    <span class="n">itypes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">otype</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    
+    <span class="k">if</span><span class="p">(</span><span class="n">input_specs</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_matrix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">input_specs</span><span class="p">:</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span><span class="p">):</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">is_hyper_param</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">Continuous</span><span class="p">)):</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">num_elements</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_scalar</span><span class="p">)</span>
+                <span class="k">elif</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">num_elements</span><span class="o">==</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">single_element_float_vector</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">num_elements</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_scalar</span><span class="p">)</span>
+                <span class="k">elif</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">num_elements</span><span class="o">==</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">single_element_int_vector</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+
+    <span class="c1">#NOTE: This gets the output type.</span>
+    <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span>  <span class="s2">&quot;type&quot;</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Float&quot;</span><span class="p">):</span>
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_scalar</span><span class="p">)</span>
+        <span class="k">elif</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Int&quot;</span><span class="p">):</span>
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_scalar</span><span class="p">)</span>
+    <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;List&quot;</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Int&quot;</span><span class="p">):</span>  
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+        <span class="k">elif</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Float&quot;</span><span class="p">):</span> 
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Int&quot;</span><span class="p">):</span>  
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_matrix</span><span class="p">)</span>
+        <span class="k">elif</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;Float&quot;</span><span class="p">):</span> 
+           <span class="n">otype</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_matrix</span><span class="p">)</span>
+
+            
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">itypes</span><span class="p">,</span> <span class="n">otype</span><span class="p">)</span>
+
+<div class="viewcode-block" id="concatenate"><a class="viewcode-back" href="../../../privugger.inference.html#privugger.inference.method.concatenate">[docs]</a><span class="k">def</span> <span class="nf">concatenate</span><span class="p">(</span><span class="n">distribution_a</span><span class="p">,</span> <span class="n">distribution_b</span><span class="p">,</span>  <span class="n">type_of_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+
+<span class="sd">    distribution_a: The first distribution</span>
+<span class="sd">    </span>
+<span class="sd">    distribution_b: The second distribution</span>
+<span class="sd">    </span>
+<span class="sd">    type_of_dist: String that specifies if it is a continuous or discrete distribution</span>
+<span class="sd">    </span>
+<span class="sd">    axis: Int value giving the axis to stack</span>
+<span class="sd">     </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -----------</span>
+<span class="sd">    Type of distribution: String</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1">#NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and</span>
+    <span class="c1">#if we are concatenating or stacking</span>
+
+    <span class="k">with</span> <span class="n">global_model</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">(</span><span class="n">distribution_a</span><span class="o">.</span><span class="n">pymc3_dist</span><span class="p">(</span><span class="n">distribution_a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">distribution_b</span><span class="o">.</span><span class="n">pymc3_dist</span><span class="p">(</span><span class="n">distribution_b</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[])),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span> <span class="p">)</span>
+        <span class="n">global_priors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">type_of_dist</span></div>
+    <span class="c1">#return ((distribution_a, distribution_b), (axis, &quot;concat&quot;))</span>
+
+
+<div class="viewcode-block" id="stack"><a class="viewcode-back" href="../../../privugger.inference.html#privugger.inference.method.stack">[docs]</a><span class="k">def</span> <span class="nf">stack</span><span class="p">(</span><span class="n">distributions</span><span class="p">,</span>  <span class="n">type_of_dist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+
+<span class="sd">    distributions: A list of distributions</span>
+<span class="sd">     </span>
+<span class="sd">    type_of_dist: String that specifies if it is a continuous or discrete distribution</span>
+
+<span class="sd">    axis: Int value giving the axis to stack</span>
+<span class="sd">     </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -----------</span>
+<span class="sd">    Type of distribution: String</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+     
+    <span class="c1">#NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and</span>
+    <span class="c1">#if we are concatenating or stacking</span>
+    <span class="k">with</span> <span class="n">global_model</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+        <span class="n">stacked</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">distributions</span><span class="p">)):</span>
+            <span class="n">stacked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distributions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">pymc3_dist</span><span class="p">(</span><span class="n">distriutions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[]))</span>
+            <span class="n">global_priors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pm</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">stacked</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">type_of_dist</span></div>
+    <span class="c1">#return (distributions, (axis, &quot;stack&quot;))</span>
+
+
+<div class="viewcode-block" id="sample_prior"><a class="viewcode-back" href="../../../privugger.inference.html#privugger.inference.method.sample_prior">[docs]</a><span class="k">def</span> <span class="nf">sample_prior</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method does the inference when provided a PyMC3 model</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -------------</span>
+<span class="sd">    model : PyMC3 model</span>
+<span class="sd">    </span>
+<span class="sd">    samples : int number of samples</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ------------</span>
+<span class="sd">    </span>
+<span class="sd">    Samples from the priors: Priors</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">model</span> <span class="k">as</span> <span class="n">sample_prior</span><span class="p">:</span>
+        <span class="n">prior_checks</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample_prior_predictive</span><span class="p">(</span><span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">prior_checks</span></div>
+    
+<div class="viewcode-block" id="infer"><a class="viewcode-back" href="../../../privugger.inference.html#privugger.inference.method.infer">[docs]</a><span class="k">def</span> <span class="nf">infer</span><span class="p">(</span><span class="n">prog</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">2</span> <span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">draws</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;pymc3&quot;</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+<span class="sd">    </span>
+<span class="sd">    prog: the program type specified as a privugger.Program type</span>
+<span class="sd">    </span>
+<span class="sd">    cores: Int number of cores to use for sampling. Default 500</span>
+<span class="sd">    </span>
+<span class="sd">    chains: Int number of chains. Default 2</span>
+
+<span class="sd">    draws: Int number of draws. Default 2</span>
+
+<span class="sd">    method: String specifying which backend to use</span>
+
+<span class="sd">    return_model: Boolean. Returns the probabilistic model if true and the trace if false</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Trace produced by the probabilistic programming inference: Arviz trace</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data_spec</span>      <span class="o">=</span> <span class="n">prog</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="n">output</span>         <span class="o">=</span> <span class="n">prog</span><span class="o">.</span><span class="n">output_type</span>
+    <span class="n">num_specs</span>      <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_spec</span><span class="o">.</span><span class="n">input_specs</span><span class="p">)</span>
+    <span class="n">input_specs</span>    <span class="o">=</span> <span class="n">data_spec</span><span class="o">.</span><span class="n">input_specs</span>
+    <span class="n">program</span>        <span class="o">=</span> <span class="n">prog</span><span class="o">.</span><span class="n">program</span>
+
+    <span class="k">global</span> <span class="n">global_priors</span>
+    <span class="k">global</span> <span class="n">global_model</span>
+    
+    <span class="c1">#### ##################</span>
+    <span class="c1">###### Lift program ###</span>
+    <span class="c1">#######################</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;pymc3&quot;</span><span class="p">:</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">program</span> <span class="ow">is</span> <span class="ow">not</span>  <span class="kc">None</span><span class="p">):</span>
+            <span class="n">ftp</span> <span class="o">=</span> <span class="n">FunctionTypeDecorator</span><span class="p">()</span>
+            <span class="n">decorators</span> <span class="o">=</span> <span class="n">_from_distributions_to_theano</span><span class="p">(</span><span class="n">input_specs</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+            
+            <span class="n">lifted_program</span> <span class="o">=</span> <span class="n">ftp</span><span class="o">.</span><span class="n">lift</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">decorators</span><span class="p">)</span>
+            <span class="n">lifted_program_w_import</span> <span class="o">=</span> <span class="n">ftp</span><span class="o">.</span><span class="n">wrap_with_theano_import</span><span class="p">(</span><span class="n">lifted_program</span><span class="p">)</span>
+        
+            <span class="c1">#print(astor.to_source(lifted_program_w_import))</span>
+        
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;typed.py&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">astor</span><span class="o">.</span><span class="n">to_source</span><span class="p">(</span><span class="n">lifted_program_w_import</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="kn">import</span> <span class="nn">typed</span> <span class="k">as</span> <span class="nn">t</span> 
+            <span class="n">importlib</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            
+            <span class="c1">#################</span>
+            <span class="c1">## Create model #</span>
+            <span class="c1">#################</span>
+            <span class="n">trace</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">with</span> <span class="n">global_model</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+                
+                <span class="n">priors</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">hyper_params</span> <span class="o">=</span> <span class="p">[]</span>
+                
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_specs</span><span class="p">):</span>
+                    <span class="n">prior</span> <span class="o">=</span> <span class="n">input_specs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+                    <span class="c1">#This is for the case when our prior comes from a concatenated/stacked distribution</span>
+                    <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">prior</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                        <span class="k">continue</span>
+                  
+                    <span class="k">if</span><span class="p">(</span><span class="n">prior</span><span class="o">.</span><span class="n">is_hyper_param</span><span class="p">):</span>
+                        <span class="n">hyper_params</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">prior</span><span class="p">,</span> <span class="n">prior</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">params</span> <span class="o">=</span> <span class="n">prior</span><span class="o">.</span><span class="n">get_params</span><span class="p">()</span>
+                        <span class="n">hypers_for_prior</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)):</span>
+                            <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="n">p_idx</span><span class="p">]</span>
+                            <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Continuous</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Discrete</span><span class="p">)):</span>
+                                <span class="k">for</span> <span class="n">hyper</span> <span class="ow">in</span> <span class="n">hyper_params</span><span class="p">:</span>
+                                    <span class="k">if</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">hyper</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                                        <span class="n">hypers_for_prior</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">hyper</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">hyper</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p_idx</span><span class="p">))</span>
+                            
+                        <span class="c1">#priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))</span>
+                        <span class="n">global_priors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prior</span><span class="o">.</span><span class="n">pymc3_dist</span><span class="p">(</span><span class="n">prior</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">hypers_for_prior</span><span class="p">))</span>
+                
+                <span class="k">if</span><span class="p">(</span><span class="n">program</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                    <span class="c1">#output = pm.Deterministic(&quot;output&quot;, t.method(*priors) )</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Deterministic</span><span class="p">(</span><span class="n">prog</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">global_priors</span><span class="p">)</span> <span class="p">)</span>
+
+                <span class="c1"># Add observations</span>
+                <span class="n">prog</span><span class="o">.</span><span class="n">execute_observations</span><span class="p">(</span><span class="n">prior</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+
+                <span class="k">if</span><span class="p">(</span><span class="n">return_model</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">global_model</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">trace</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">draws</span><span class="o">=</span><span class="n">draws</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="n">chains</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="n">cores</span><span class="p">,</span><span class="n">return_inferencedata</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">global_priors</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">global_model</span> <span class="o">=</span> <span class="n">pm</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">trace</span>
+            
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;scipy&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="kn">import</span> <span class="nn">re</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;typed.py&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;def [a-zA-Z]+\(&quot;</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;def [a-zA-Z]+\(&quot;</span><span class="p">,</span> <span class="s2">&quot;def method(&quot;</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="kn">import</span> <span class="nn">typed</span> <span class="k">as</span> <span class="nn">t</span>
+            <span class="n">importlib</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">method</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">program</span>
+        <span class="n">priors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">trace</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_specs</span><span class="p">):</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">dist</span> <span class="o">=</span> <span class="n">input_specs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">scipy_dist</span><span class="p">(</span><span class="n">input_sepcs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">dist</span><span class="p">(</span><span class="n">draws</span><span class="p">)</span>
+            <span class="n">priors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+            <span class="n">trace</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">dist</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pi</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">priors</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pi</span> <span class="o">=</span> <span class="n">pi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">pi</span><span class="p">))</span>
+        <span class="n">trace</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">outputs</span>
+        <span class="k">return</span> <span class="n">az</span><span class="o">.</span><span class="n">convert_to_inference_data</span><span class="p">(</span><span class="n">trace</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported probabilistic framework&quot;</span><span class="p">)</span></div>
+
+
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Raul Pardo, Rasmus Rønneberg, Willard Rafnsson, Andrzej Wasowski &amp; Mathias Jørgensen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>privugger.transformer.type_decoration &mdash; Privugger  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Privugger
+            <img src="../../../_static/privugger-logo-tiny.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Privugger Tutorials &amp; Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Tutorial.html">Getting started with privugger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Open-dp-Tutorial.html">Example of using Privugger on OpenDP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/Governor.html">Governor tutorial</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API and Developer Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.transformer.html">Privugger Transformer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.measures.html">Privugger Measures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../privugger.attacker.html">Attacker Generation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Privugger</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>privugger.transformer.type_decoration</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for privugger.transformer.type_decoration</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">astor</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">privugger.transformer.annotation_types</span> <span class="k">as</span> <span class="nn">at</span>
+<span class="kn">from</span> <span class="nn">privugger.transformer.theano_types</span> <span class="kn">import</span> <span class="n">TheanoToken</span>
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator">[docs]</a><span class="k">class</span> <span class="nc">FunctionTypeDecorator</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">NodeTransformer</span><span class="p">):</span>
+
+    <span class="n">function_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">itypes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">otypes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">has_tuples</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">has_list_tuples</span> <span class="o">=</span> <span class="kc">False</span>
+
+ 
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">function_name</span> <span class="o">=</span> <span class="n">name</span>
+
+    
+<div class="viewcode-block" id="FunctionTypeDecorator.get_function_def_ast"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.get_function_def_ast">[docs]</a>    <span class="k">def</span> <span class="nf">get_function_def_ast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tree</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">tree</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;did not find any function definition in program&quot;</span><span class="p">)</span></div>
+    
+    
+<div class="viewcode-block" id="FunctionTypeDecorator.get_function_return"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.get_function_return">[docs]</a>    <span class="k">def</span> <span class="nf">get_function_return</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">ast_node</span> <span class="ow">in</span> <span class="n">body</span><span class="p">:</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ast_node</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">ast_node</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;did not find any Return&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.simple_method_wrap"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.simple_method_wrap">[docs]</a>    <span class="k">def</span> <span class="nf">simple_method_wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">program</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        
+        <span class="n">arg_identifiers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="n">arg_identifiers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">arg</span><span class="p">)</span>
+
+        <span class="c1">#func_returns = self.get_function_return(program.body)</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">arguments</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">arg_identifiers</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">[],</span> <span class="n">vararg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwarg</span><span class="o">=</span><span class="kc">None</span><span class="p">)],</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[]))</span>
+        
+        <span class="n">new_function</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="n">decorator_list</span><span class="o">=</span><span class="p">[],</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="n">program</span><span class="p">,</span> <span class="n">returns</span><span class="p">])])</span>
+        <span class="k">return</span> <span class="n">new_function</span></div>
+        <span class="c1">#print(astor.to_source(new_function))</span>
+        <span class="c1">#print(ast.dump(new_function))</span>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.lift"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.lift">[docs]</a>    <span class="k">def</span> <span class="nf">lift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">program</span><span class="p">,</span> <span class="n">decorators</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This funtion provides another path to program lifting, when the decoration types are given directly. </span>
+<span class="sd">        The function lifts the program to be used within a pymc3 model.</span>
+<span class="sd">         </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ------------</span>
+<span class="sd">        program: path to program or a string of the entire program</span>
+<span class="sd">        decorators: list of the decorator types</span>
+
+<span class="sd">        Return</span>
+<span class="sd">        -----------</span>
+<span class="sd">        Python AST node with the lifted program</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1">#NOTE This is for when the program is given as a path to the file</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">program</span><span class="p">)</span>
+            <span class="n">tree</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">program</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;lambda&quot;</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;lambda&quot;</span><span class="p">)</span>
+                <span class="n">end_draws</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;draws&quot;</span><span class="p">)</span>
+                <span class="n">end_chains</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;chains&quot;</span><span class="p">)</span>
+                <span class="n">end_cores</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;cores&quot;</span><span class="p">)</span>
+
+                <span class="c1">#NOTE this is when we only use the default values</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">end_draws</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">end_chains</span><span class="o">==-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">end_cores</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+                    <span class="c1">#TODO There are bugs if the program is defined elsewhere and ends with &quot;)&quot;</span>
+                    <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                    
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">end_draws</span><span class="p">,</span> <span class="n">end_chains</span><span class="p">,</span> <span class="n">end_cores</span><span class="p">]</span>
+                    <span class="c1">#NOTE filter all the values that are not set </span>
+                    <span class="n">positive_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span>
+                    <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">positive_values</span><span class="p">)</span>
+                    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">)</span>
+                
+            <span class="k">if</span><span class="p">(</span><span class="s2">&quot;lambda&quot;</span> <span class="o">==</span> <span class="n">res</span><span class="p">[:</span><span class="mi">6</span><span class="p">]):</span>
+                <span class="n">form</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;def function(</span><span class="si">{</span><span class="n">form</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">6</span><span class="p">:]</span><span class="si">}</span><span class="s2">): </span><span class="se">\n</span><span class="s2"> return </span><span class="si">{</span><span class="n">form</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="s2">&quot;def&quot;</span> <span class="o">!=</span> <span class="n">res</span><span class="p">[:</span><span class="mi">3</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The program needs to be a path to a file, a lambda or a function&quot;</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;temp.py&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            <span class="n">tree</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;temp.py&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;temp.py&quot;</span><span class="p">)</span>
+        
+        <span class="c1">#if(&quot;lambda&quot;)</span>
+        
+        
+        
+        <span class="n">function_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_function_def_ast</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_decorated_function</span><span class="p">(</span><span class="n">function_def</span><span class="p">,</span> <span class="n">decorators</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">decorators</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">)):</span>
+            <span class="n">imports</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">wrapped_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_method_wrap</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">wrapped_node</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">imports</span><span class="p">)</span>
+            
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wrapped_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_method_wrap</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tree</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">wrapped_node</span></div>
+
+    
+<div class="viewcode-block" id="FunctionTypeDecorator.translate_type"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.translate_type">[docs]</a>    <span class="k">def</span> <span class="nf">translate_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Helper function to translate types from python types to theano tensor type</span>
+<span class="sd">        Parameter: </span>
+<span class="sd">        string with the name of the type</span>
+<span class="sd">        p_type: string</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">        string with name of theano tensor type</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">p_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;dscalar&#39;</span>
+        
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;lscalar&#39;</span>
+        
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span> <span class="o">==</span> <span class="s1">&#39;VectorI&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;lvector&#39;</span>
+        
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span> <span class="o">==</span> <span class="s1">&#39;VectorF&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;dvector&#39;</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span> <span class="o">==</span> <span class="s1">&#39;MatrixI&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;lmatrix&#39;</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span><span class="o">==</span> <span class="s1">&#39;MatrixF&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;fmatrix&#39;</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span><span class="o">==</span><span class="s1">&#39;MatrixD&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;dmatrix&#39;</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span><span class="o">==</span><span class="s1">&#39;Single_element_VectorF&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;TensorType(</span><span class="se">\&#39;</span><span class="s1">float64</span><span class="se">\&#39;</span><span class="s1">, (True,))&#39;</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">p_type</span><span class="o">==</span><span class="s1">&#39;Single_element_VectorI&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;TensorType(</span><span class="se">\&#39;</span><span class="s1">int64</span><span class="se">\&#39;</span><span class="s1">, (True,))&#39;</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Cannot translate type to any theano type&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.from_python_to_theano_types"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.from_python_to_theano_types">[docs]</a>    <span class="k">def</span> <span class="nf">from_python_to_theano_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">itypes</span><span class="p">,</span> <span class="n">otype</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function that transforms a list of itypes and a otype from python types to theano tensor types</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">theano_itypes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">itypes</span><span class="p">:</span>
+            <span class="n">theano_itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">translate_type</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+        <span class="n">theano_otype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">translate_type</span><span class="p">(</span><span class="n">otype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">theano_itypes</span><span class="p">,</span> <span class="n">theano_otype</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator.find_return_ast"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.find_return_ast">[docs]</a>    <span class="k">def</span> <span class="nf">find_return_ast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+                
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function will find the return statements in original program</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">return_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">body</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">)):</span>
+                <span class="n">return_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">body</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">i</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+                <span class="c1">#print(body[i])</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">return_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">return_list</span>
+        <span class="k">else</span><span class="p">:</span>
+           <span class="k">return</span> <span class="kc">None</span> </div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.wrap_output_type"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.wrap_output_type">[docs]</a>    <span class="k">def</span> <span class="nf">wrap_output_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_body</span><span class="p">,</span> <span class="n">out_type</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">((</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Compare</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">ListComp</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">BinOp</span><span class="p">)</span> <span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
+            <span class="c1">#elif(out_type == &#39;float&#39;):</span>
+             <span class="c1">#   o_attr = &#39;float64&#39;</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">out_type</span><span class="o">==</span><span class="s1">&#39;VectorI&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;VectorF&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;MatrixF&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixI&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixD&#39;</span> <span class="ow">or</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;array&#39;</span>
+            <span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="n">attr</span><span class="o">=</span><span class="n">o_attr</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">out_body</span><span class="p">],</span><span class="n">keywords</span><span class="o">=</span><span class="p">[]))</span>
+        
+
+
+        <span class="k">if</span><span class="p">(</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Constant</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;float32&#39;</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">out_type</span><span class="o">==</span><span class="s1">&#39;VectorI&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;VectorF&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;MatrixF&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixI&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixD&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;array&#39;</span>
+            <span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="n">attr</span><span class="o">=</span><span class="n">o_attr</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">out_body</span><span class="p">],</span><span class="n">keywords</span><span class="o">=</span><span class="p">[]))</span>
+        
+        <span class="k">if</span><span class="p">(</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_body</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">IfExp</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;float32&#39;</span>
+            <span class="k">elif</span><span class="p">(</span><span class="n">out_type</span><span class="o">==</span><span class="s1">&#39;VectorI&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;VectorF&#39;</span> <span class="ow">or</span> <span class="n">out_type</span> <span class="o">==</span> <span class="s1">&#39;MatrixF&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixI&#39;</span> <span class="ow">or</span> <span class="s1">&#39;MatrixD&#39;</span><span class="p">):</span>
+                <span class="n">o_attr</span> <span class="o">=</span> <span class="s1">&#39;array&#39;</span>
+            <span class="n">wrapped_body</span> <span class="o">=</span>  <span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="n">attr</span><span class="o">=</span><span class="n">o_attr</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">out_body</span><span class="o">.</span><span class="n">body</span><span class="p">],</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[])</span>
+            <span class="n">wrapped_orelse</span> <span class="o">=</span>  <span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="n">attr</span><span class="o">=</span><span class="n">o_attr</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">out_body</span><span class="o">.</span><span class="n">orelse</span><span class="p">],</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[])</span>
+            <span class="n">out_body</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">wrapped_body</span>
+            <span class="n">out_body</span><span class="o">.</span><span class="n">orelse</span> <span class="o">=</span> <span class="n">wrapped_orelse</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">out_body</span><span class="p">))</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">out_body</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator.create_decorated_function"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.create_decorated_function">[docs]</a>    <span class="k">def</span> <span class="nf">create_decorated_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">itypes</span><span class="p">,</span> <span class="n">otype</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function decorates a FunctionDef node with tensor types</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">number_of_itypes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">itypes</span><span class="p">)</span> 
+        
+        <span class="n">theano_itypes</span><span class="p">,</span><span class="n">theano_otype</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">from_python_to_theano_types</span><span class="p">(</span><span class="n">itypes</span><span class="p">,</span> <span class="n">otype</span><span class="p">)</span>
+
+        <span class="n">ielts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">oelts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_of_itypes</span><span class="p">):</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">attr</span><span class="o">=</span><span class="n">theano_itypes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">())</span>
+            <span class="n">ielts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span> 
+        
+        <span class="n">oelts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">attr</span><span class="o">=</span><span class="n">theano_otype</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()))</span>
+        
+        <span class="n">theano_keywords</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">keyword</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="s1">&#39;itypes&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">elts</span><span class="o">=</span><span class="n">ielts</span><span class="p">)),</span> <span class="n">ast</span><span class="o">.</span><span class="n">keyword</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="s1">&#39;otypes&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">List</span><span class="p">(</span><span class="n">elts</span><span class="o">=</span><span class="n">oelts</span><span class="p">))]</span>
+
+        <span class="n">theano_decorator_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;theano&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;ops&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;as_op&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">args</span><span class="o">=</span><span class="p">[],</span> <span class="n">keywords</span><span class="o">=</span><span class="n">theano_keywords</span><span class="p">)]</span>
+        
+        <span class="c1">#return_body, index = self.find_return_ast(node.body)</span>
+        <span class="n">return_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_return_ast</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">return_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">return_list</span><span class="p">:</span>
+                <span class="n">wrapped_return_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_output_type</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">otype</span><span class="p">)</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">wrapped_return_body</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">decorator_list</span> <span class="o">=</span> <span class="n">theano_decorator_list</span>
+        <span class="k">return</span> <span class="n">node</span> </div>
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator.get_next_annotation"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.get_next_annotation">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">List</span><span class="p">)):</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">List</span><span class="p">()</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">a_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">elts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Tuple</span><span class="p">)):</span>
+    
+            <span class="n">t</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">Tuple</span><span class="p">()</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">elts</span><span class="p">)</span> 
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">length</span><span class="p">):</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">a_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">elts</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        
+        <span class="k">elif</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">)):</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s2">&quot;List&quot;</span><span class="p">):</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">List</span><span class="p">()</span>
+                <span class="n">l</span><span class="o">.</span><span class="n">a_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">slice</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">l</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">slice</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+          
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+        
+                <span class="k">raise</span> <span class="n">TyperError</span><span class="p">(</span><span class="s2">&quot;Seems that there is a problem with the annotation&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.visit_FunctionDef"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.visit_FunctionDef">[docs]</a>    <span class="k">def</span> <span class="nf">visit_FunctionDef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The main traversal function that visits all the FunctionDef nodes and returns a decorated FunctionDef</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_name</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="n">itypes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">otype</span> <span class="o">=</span> <span class="kc">None</span>
+    
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="c1">#annotation = self.get_next_annotation_rec(a.annotation, &quot;&quot;)</span>
+            <span class="n">annotation_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">annotation</span><span class="p">)</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">List</span><span class="p">):</span>
+                <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                    <span class="c1">#itypes.append(&quot;VectorI&quot;)</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+                <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+                    <span class="c1">#itypes.append(&quot;VectorF&quot;)</span>
+                    <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+                <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Tuple</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">has_list_tuples</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">:</span>
+                        <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                            <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+                            <span class="c1">#itypes.append(&quot;VectorI&quot;)</span>
+                        <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+                            <span class="c1">#itypes.append(&quot;VectorF&quot;)</span>
+                            <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+        
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                <span class="c1">#itypes.append(&quot;int&quot;)</span>
+                <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_scalar</span><span class="p">)</span>
+            
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+                <span class="c1">#itypes.append(&quot;float&quot;)</span>
+                <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_scalar</span><span class="p">)</span>
+            
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Tuple</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">has_tuples</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">:</span>
+                    <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                        <span class="c1">#itypes.append(&quot;VectorI&quot;)</span>
+                        <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_vector</span><span class="p">)</span>
+                    <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+                            <span class="c1">#itypes.append(&quot;VectorF&quot;)</span>
+                            <span class="n">itypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_vector</span><span class="p">)</span>
+         
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Seems that the annotations are wrong&quot;</span><span class="p">)</span>
+            
+        
+
+        <span class="n">out_annotation_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_next_annotation</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">returns</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">List</span><span class="p">):</span>
+            <span class="k">if</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">List</span><span class="p">):</span>
+                <span class="k">if</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="o">.</span><span class="n">a_type</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                    <span class="n">outype</span> <span class="o">=</span> <span class="n">TheanoTokoen</span><span class="o">.</span><span class="n">int_matrix</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_matrix</span>
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Tuple</span><span class="p">):</span>
+                <span class="n">all_ints</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">all_ints</span><span class="p">:</span>
+                    <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_matrix</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_matrix</span>
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+                <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_scalar</span>
+            <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+                <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_scalar</span>
+        <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+            <span class="n">otype</span> <span class="o">=</span> <span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_scalar</span><span class="p">)</span>
+            
+        <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+            <span class="n">otype</span> <span class="o">=</span> <span class="p">(</span><span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_scalar</span><span class="p">)</span>
+            
+        <span class="k">elif</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">out_annotation_type</span><span class="p">)</span> <span class="o">==</span> <span class="n">at</span><span class="o">.</span><span class="n">Tuple</span><span class="p">):</span>
+            <span class="n">all_ints</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">at</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">out_annotation_type</span><span class="o">.</span><span class="n">a_type</span><span class="p">)</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">all_ints</span><span class="p">):</span>
+                <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">int_matrix</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">otype</span> <span class="o">=</span> <span class="n">TheanoToken</span><span class="o">.</span><span class="n">float_matrix</span>
+         
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Seems that the annotations are wrong&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">itypes</span> <span class="o">=</span> <span class="n">itypes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">otypes</span> <span class="o">=</span> <span class="n">otype</span>
+    
+        <span class="n">decorated_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_decorated_function</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">itypes</span><span class="p">,</span> <span class="n">otype</span><span class="p">)</span>    
+        <span class="k">return</span> <span class="p">((</span><span class="n">decorated_func</span><span class="p">))</span></div>
+
+
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator.find_function_def_idx"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.find_function_def_idx">[docs]</a>    <span class="k">def</span> <span class="nf">find_function_def_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+        <span class="n">iterable_list</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">body</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iterable_list</span><span class="p">)):</span>
+            <span class="k">if</span><span class="p">(</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterable_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="FunctionTypeDecorator.wrap_with_theano_import"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.wrap_with_theano_import">[docs]</a>    <span class="k">def</span> <span class="nf">wrap_with_theano_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">program</span><span class="p">):</span>
+
+        <span class="n">theano_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;theano&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="kc">None</span><span class="p">)])</span>
+        <span class="n">theano_tensor_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;theano.tensor&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">)])</span>
+        <span class="n">numpy_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;numpy&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)])</span>
+        <span class="n">new_program</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="n">theano_import</span><span class="p">,</span> <span class="n">theano_tensor_import</span><span class="p">,</span><span class="n">numpy_import</span><span class="p">,</span>  <span class="n">program</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">new_program</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.wrap_with_imports"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.wrap_with_imports">[docs]</a>    <span class="k">def</span> <span class="nf">wrap_with_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">program</span><span class="p">):</span>
+        <span class="n">theano_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;theano&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="kc">None</span><span class="p">)])</span>
+        <span class="n">theano_tensor_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;theano.tensor&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">)])</span>
+        <span class="n">numpy_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Import</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;numpy&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="s1">&#39;np&#39;</span><span class="p">)])</span>
+        <span class="n">typing_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">ImportFrom</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="s1">&#39;typing&#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;List&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Tuple&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="kc">None</span><span class="p">))])</span>
+        <span class="n">functools_import</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">ImportFrom</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="s1">&#39;functools&#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;reduce&#39;</span><span class="p">,</span> <span class="n">asname</span><span class="o">=</span><span class="kc">None</span><span class="p">)])</span>
+
+
+        <span class="n">body_with_needed_imports</span> <span class="o">=</span> <span class="p">[</span><span class="n">theano_import</span><span class="p">,</span> <span class="n">theano_tensor_import</span><span class="p">,</span> <span class="n">numpy_import</span><span class="p">,</span><span class="n">functools_import</span><span class="p">,</span> <span class="n">typing_import</span><span class="p">]</span><span class="o">+</span> <span class="n">program</span><span class="o">.</span><span class="n">body</span> 
+        <span class="n">program</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">body_with_needed_imports</span>
+
+        <span class="k">return</span> <span class="n">program</span></div>
+
+
+<div class="viewcode-block" id="FunctionTypeDecorator.construct_python_args"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.construct_python_args">[docs]</a>    <span class="k">def</span> <span class="nf">construct_python_args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">new_args</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">)):</span>
+            <span class="n">new_annotation</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;VectorI&#39;</span><span class="p">):</span>
+                <span class="n">new_annotation</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span> <span class="o">=</span> <span class="s2">&quot;List&quot;</span><span class="p">,</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="nb">slice</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()))</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">==</span> <span class="s1">&#39;VectorF&#39;</span><span class="p">):</span>
+                <span class="n">new_annotation</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span> <span class="o">=</span> <span class="s2">&quot;List&quot;</span><span class="p">,</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span><span class="nb">slice</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()))</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">):</span>
+                <span class="n">new_annotation</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">cts</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">())</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">):</span>
+                <span class="n">new_annotation</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">cts</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">())</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">==</span> <span class="s1">&#39;MatrixI&#39;</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">itypes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="o">==</span> <span class="s1">&#39;MatrixF&#39;</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="n">new_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">arg</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;arg_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span><span class="n">annotation</span><span class="o">=</span><span class="n">new_annotation</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">arguments</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">new_args</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">[],</span> <span class="n">vararg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwarg</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.construct_python_body"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.construct_python_body">[docs]</a>    <span class="k">def</span> <span class="nf">construct_python_body</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">new_args</span><span class="p">,</span> <span class="n">new_args_idx</span><span class="p">,</span> <span class="n">original_name</span><span class="p">):</span>
+        
+        <span class="n">value_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_args_idx</span><span class="p">:</span>
+            <span class="n">value_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span> <span class="o">=</span> <span class="n">new_args</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">arg</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()))</span>
+        
+        <span class="n">body</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">new_args</span>
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">has_tuples</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_list_tuples</span><span class="p">):</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Assign</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">original_name</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">())],</span> <span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">value_names</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;tuple&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[]))]</span> <span class="o">+</span> <span class="n">body</span><span class="o">.</span><span class="n">body</span>
+            <span class="n">body</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">temp</span>    
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">has_list_tuples</span><span class="p">):</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Assign</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span>
+                    <span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">original_name</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">())],</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">value_names</span><span class="p">,</span> 
+                    <span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;zip&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[])],</span> <span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;list&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[]))]</span> <span class="o">+</span> <span class="n">body</span><span class="o">.</span><span class="n">body</span>
+            <span class="n">body</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">temp</span>
+
+        <span class="k">return</span> <span class="n">body</span></div>
+
+<div class="viewcode-block" id="FunctionTypeDecorator.wrap_program_with_signature"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.FunctionTypeDecorator.wrap_program_with_signature">[docs]</a>    <span class="k">def</span> <span class="nf">wrap_program_with_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">program</span><span class="p">):</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_function_def_idx</span><span class="p">(</span><span class="n">program</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+        
+        <span class="n">func_name</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">func_args</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">args</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">has_tuples</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_list_tuples</span><span class="p">):</span>
+
+            <span class="n">new_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct_python_args</span><span class="p">()</span>
+            <span class="n">new_args_idx</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">original_name</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_args</span><span class="o">.</span><span class="n">args</span><span class="p">)):</span>
+                <span class="n">new</span> <span class="o">=</span> <span class="n">new_args</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">annotation</span>
+                <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">func_args</span><span class="o">.</span><span class="n">args</span><span class="p">)):</span>
+                    <span class="n">old</span> <span class="o">=</span> <span class="n">func_args</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">annotation</span>
+                    <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">)):</span>
+                        <span class="n">new_args_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    
+                    <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Subscript</span><span class="p">)):</span>
+                        <span class="k">if</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">old</span><span class="o">.</span><span class="n">slice</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Tuple</span><span class="p">)):</span>
+                            <span class="n">new_args_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                            <span class="n">original_name</span> <span class="o">=</span> <span class="n">func_args</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">arg</span>
+                        <span class="k">elif</span><span class="p">(</span><span class="n">old</span><span class="o">.</span><span class="n">slice</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s2">&quot;Tuple&quot;</span><span class="p">):</span>
+                            <span class="n">new_args_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                            <span class="n">original_name</span> <span class="o">=</span> <span class="n">func_args</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">arg</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_args_idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="c1"># print(new_args_idx)</span>
+
+
+            <span class="n">new_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct_python_body</span><span class="p">(</span><span class="n">program</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">new_args</span><span class="p">,</span> <span class="n">new_args_idx</span><span class="p">,</span> <span class="n">original_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_args</span> <span class="o">=</span> <span class="n">func_args</span>
+            <span class="n">new_body</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+  
+        <span class="c1">#Check every arguments, to see if it contains a tuple or a list of tuples</span>
+        <span class="c1"># for i in range(len(func_args.args)):</span>
+        <span class="c1">#     idx_has_tuple_arguments.append((i, has_tuple(func_args.args[i].annotation), has_list(func_args.args[i].annotation)))</span>
+        <span class="c1"># print(idx_has_tuple_arguments)</span>
+
+        <span class="n">func_returns</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">returns</span>
+        
+        <span class="n">arg_identifiers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">new_args</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="n">arg_identifiers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">arg</span><span class="p">)</span>
+               
+    
+        <span class="n">returns</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Return</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">arguments</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">arg_identifiers</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">[],</span> <span class="n">vararg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwarg</span><span class="o">=</span><span class="kc">None</span><span class="p">)],</span> <span class="n">func</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">func_name</span><span class="p">,</span> <span class="n">ctx</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">Load</span><span class="p">()),</span> <span class="n">keywords</span><span class="o">=</span><span class="p">[]))</span>
+
+        <span class="c1">#program.body[idx]</span>
+        <span class="n">new_function</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="n">ast</span><span class="o">.</span><span class="n">FunctionDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="n">decorator_list</span><span class="o">=</span><span class="p">[],</span> <span class="n">args</span><span class="o">=</span><span class="n">new_args</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="n">new_body</span><span class="p">,</span> <span class="n">returns</span> <span class="p">],</span> <span class="n">returns</span><span class="o">=</span><span class="n">func_returns</span><span class="p">)])</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">new_function</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../../privugger.transformer.html#privugger.transformer.type_decoration.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">function</span><span class="p">):</span>
+ 
+    <span class="n">tree</span> <span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+    <span class="c1">#print(ast.dump(tree))</span>
+    <span class="n">ftp</span> <span class="o">=</span> <span class="n">FunctionTypeDecorator</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+
+    <span class="n">new_program</span> <span class="o">=</span> <span class="n">ftp</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+
+    <span class="n">new_program_with_outer_function</span> <span class="o">=</span> <span class="n">ftp</span><span class="o">.</span><span class="n">wrap_program_with_signature</span><span class="p">(</span><span class="n">new_program</span><span class="p">)</span>
+
+    <span class="n">new_program_with_imports</span> <span class="o">=</span> <span class="n">ftp</span><span class="o">.</span><span class="n">wrap_with_imports</span><span class="p">(</span><span class="n">new_program_with_outer_function</span><span class="p">)</span>
+    <span class="c1">#TheanoImport().visit(new_program_with_outer_function)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">astor</span><span class="o">.</span><span class="n">to_source</span><span class="p">(</span><span class="n">new_program_with_imports</span><span class="p">))</span>
+
+
+    <span class="k">return</span> <span class="n">new_program_with_imports</span></div>
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Raul Pardo, Rasmus Rønneberg, Willard Rafnsson, Andrzej Wasowski &amp; Mathias Jørgensen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
