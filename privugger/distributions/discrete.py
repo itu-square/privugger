@@ -165,7 +165,7 @@ class Binomial(Discrete):
         self.num_elements=num_elements
         self.is_hyper_param = is_hyper_param
     
-    def pymc3_dist(self, namei, hypers):
+    def pymc3_dist(self, name, hypers):
         n = self.n
         p = self.p
 
