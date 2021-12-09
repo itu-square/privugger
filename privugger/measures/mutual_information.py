@@ -6,10 +6,11 @@ from sklearn.feature_selection import mutual_info_regression
 
 def mi_sklearn(
         trace,
-        var_names,
+        var_names=[],
         disc_features=False,
         log2=True,
-        n_neigh=20
+        n_neigh=20,
+        input_inferencedata=True
 ):
     """
     Binding for estimating mutual information using the `mutual_info_regression` function from `sklearn`.
@@ -36,9 +37,18 @@ def mi_sklearn(
     result : float
         Mutual information in log2 or ln.
     """
-    assert len(var_names)==2, "var_names must contain exactly two elements"
-    mi_nat = mutual_info_regression(trace.posterior[var_names[0]].values.flatten().reshape(-1,1),
-                                    trace.posterior[var_names[1]].values.flatten(),
+    trace1 = trace2 = []
+    if input_inferencedata:
+        assert len(var_names)==2, "var_names must contain exactly two elements"
+        trace1 = trace.posterior[var_names[0]].values.flatten().reshape(-1,1)
+        trace2 = trace.posterior[var_names[1]].values.flatten()
+    else:
+        assert len(trace) == 2, "trace must containt two subtraces for each of each random variables to compute mutual information"
+        trace1 = trace[0].reshape(-1,1)
+        trace2 = trace[1]
+
+    mi_nat = mutual_info_regression(trace1,
+                                    trace2,
                                     discrete_features=disc_features,
                                     n_neighbors=n_neigh)
     result = mi_nat/np.log(2) if log2 else mi_nat
