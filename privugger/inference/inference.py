@@ -13,8 +13,10 @@ import os
 import importlib
 
 ## Create a global pymc3 model and list of priors
-global_model = pm.Model()
+global_model  = pm.Model()
 global_priors = []
+concatenated  = False
+stacked       = False
 
 def _from_distributions_to_theano(input_specs, output):
     
@@ -98,6 +100,9 @@ def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
     with global_model as model:
         val = pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis )
         global_priors.append(val)
+
+    global concatenated
+    concatenated = True
     return type_of_dist
     #return ((distribution_a, distribution_b), (axis, "concat"))
 
@@ -127,6 +132,7 @@ def stack(distributions,  type_of_dist, axis=0):
             stacked.append(distributions[i].pymc3_dist(distriutions[i].name, []))
             global_priors.append(pm.math.stack(stacked, axis=axis))
 
+    stacked = True
     return type_of_dist
     #return (distributions, (axis, "stack"))
 
@@ -183,8 +189,14 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
     global global_priors
     global global_model
-    global_model = pm.Model()
-    global_priors = []
+    global concatenated
+    global stacked
+    print(concatenated)
+    print(stacked)
+    if not (concatenated or stacked):
+        print("here")
+        global_model = pm.Model()
+        global_priors = []
     #### ##################
     ###### Lift program ###
     #######################
@@ -247,7 +259,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                 else:
                     trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
 
-                
+                concatenated  = False
+                stacked       = False
                 del global_model
                 del global_priors
                 #global_model = pm.Model()
