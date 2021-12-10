@@ -183,8 +183,8 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
     global global_priors
     global global_model
-    global_model = pm.Model()
-    global_priors = []
+    # global_model = pm.Model()
+    # global_priors = []
     #### ##################
     ###### Lift program ###
     #######################
