@@ -13,10 +13,13 @@ import os
 import importlib
 
 ## Create a global pymc3 model and list of priors
-global_model  = pm.Model()
+global_model  = None
 global_priors = []
-concatenated  = False
-stacked       = False
+
+## Set global variables for indicating if there was a concat/stack before infer
+concatenated     = False
+stacked          = False
+global_model_set = False
 
 def _from_distributions_to_theano(input_specs, output):
     
@@ -79,7 +82,7 @@ def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
     """
     
     Parameters
-    -----------
+    ----------- 
 
     distribution_a: The first distribution
     
@@ -96,7 +99,14 @@ def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
     
     #NOTE we just return a tuple and then actually concat later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
-
+    global global_model
+    global global_model_set
+    global global_priors
+    
+    if(not global_model_set):
+        global_model     = pm.Model()
+        global_priors    = []
+        global_model_set = True
     with global_model as model:
         val = pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis )
         global_priors.append(val)
@@ -126,12 +136,22 @@ def stack(distributions,  type_of_dist, axis=0):
      
     #NOTE we just return a tuple and then actually stack later. First element is the distributions and second specify the axis and
     #if we are concatenating or stacking
+    global global_model
+    global global_model_set
+    global global_priors
+    
+    if(not global_model_set):
+        global_model     = pm.Model()
+        global_priors    = []
+        global_model_set = True
+        
     with global_model as model:
-        stacked = []
+        stacked_variables = []
         for i in range(len(distributions)):
-            stacked.append(distributions[i].pymc3_dist(distriutions[i].name, []))
-            global_priors.append(pm.math.stack(stacked, axis=axis))
+            stacked_variables.append(distributions[i].pymc3_dist(distriutions[i].name, []))
+            global_priors.append(pm.math.stack(stacked_variables, axis=axis))
 
+    global stacked
     stacked = True
     return type_of_dist
     #return (distributions, (axis, "stack"))
@@ -192,9 +212,14 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
 
     global concatenated
     global stacked
-    if not (concatenated or stacked):
+    global global_model_set
+    
+    if not (concatenated or stacked or global_model_set):
+        
         global_model = pm.Model()
         global_priors = []
+        global_model_set = True
+
     # global_model = pm.Model()
     # global_priors = []
     
@@ -260,8 +285,9 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                 else:
                     trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
 
-                concatenated  = False
-                stacked       = False
+                concatenated     = False
+                stacked          = False
+                global_model_set = False
                 del global_model
                 del global_priors
                 #global_model = pm.Model()
