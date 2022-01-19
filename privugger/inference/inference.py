@@ -49,7 +49,7 @@ def _from_distributions_to_theano(input_specs, output):
                     itypes.append(TheanoToken.float_vector)
 
             else:
-                if(S.Num_Elements == -1):
+                if(s.num_elements == -1):
                     itypes.append(TheanoToken.int_scalar)
                 elif(s.num_elements==1):
                     itypes.append(TheanoToken.single_element_int_vector)
