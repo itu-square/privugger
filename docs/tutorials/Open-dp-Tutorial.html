@@ -1,16 +1,36 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>Example of using Privugger on OpenDP &mdash; Privugger  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
@@ -18,21 +38,42 @@
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script src="../_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Governor tutorial" href="Governor.html" />
+    <link rel="next" title="Governor case study" href="Governor.html" />
     <link rel="prev" title="Getting started with privugger" href="Tutorial.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="../index.html" class="icon icon-home"> Privugger
+          
+
+          
+            
             <img src="../_static/privugger-logo-tiny.png" class="logo" alt="Logo"/>
+          
           </a>
+
+          
+            
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -40,12 +81,34 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <p class="caption" role="heading"><span class="caption-text">Privugger Tutorials &amp; Examples</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Tutorial.html">Getting started with privugger</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Example of using Privugger on OpenDP</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Governor.html">Governor tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example of using Privugger on OpenDP</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#OpenDP-program">OpenDP program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Input-specification">Input specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Dataset-&amp;-Program-specification">Dataset &amp; Program specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Program-specification">Program specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Inference">Inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Privacy-Risk-Analysis">Privacy Risk Analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Mutual-Information">Mutual Information</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Governor.html">Governor case study</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API and Developer Reference</span></p>
 <ul>
@@ -57,30 +120,71 @@
 <li class="toctree-l1"><a class="reference internal" href="../privugger.attacker.html">Attacker Generation</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">Privugger</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
+    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
       <li>Example of using Privugger on OpenDP</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="../_sources/tutorials/Open-dp-Tutorial.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
+            
   
 <style>
 /* CSS for nbsphinx extension */
@@ -356,16 +460,15 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
-
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;../..&quot;</span><span class="p">))</span>
-
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">arviz</span> <span class="k">as</span> <span class="nn">az</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">import</span> <span class="nn">privugger</span> <span class="k">as</span> <span class="nn">pv</span>
+<span class="c1"># move to previouse directory to access the privugger code</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;../../&quot;</span><span class="p">))</span>
 
+<span class="kn">import</span> <span class="nn">privugger</span> <span class="k">as</span> <span class="nn">pv</span>
 </pre></div>
 </div>
 </div>
@@ -377,21 +480,26 @@ div.rendered_html tbody tr:hover {
 WARNING (theano.tensor.blas): Using NumPy C-API based implementation for BLAS functions.
 </pre></div></div>
 </div>
-<section id="Example-of-using-Privugger-on-OpenDP">
-<h1>Example of using Privugger on OpenDP<a class="headerlink" href="#Example-of-using-Privugger-on-OpenDP" title="Permalink to this headline"></a></h1>
-<p>In this first example we use the differential privacy libray <em>open dp</em> on a program with information about <em>age, sex, education, race, income and marriage status</em>. The program computes the mean of the ages and add Laplacian noise to it.</p>
-<p>(explain sensativity)</p>
-<p>Below we show the program with it’s imports embedded in the function body.</p>
+<div class="section" id="Example-of-using-Privugger-on-OpenDP">
+<h1>Example of using Privugger on OpenDP<a class="headerlink" href="#Example-of-using-Privugger-on-OpenDP" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial shows the use of privugger on a program using the differential privacy libray <a class="reference external" href="https://github.com/opendp">OpenDP</a>.</p>
+<div class="section" id="OpenDP-program">
+<h2>OpenDP program<a class="headerlink" href="#OpenDP-program" title="Permalink to this headline">¶</a></h2>
+<p>We consider a program that takes as input a dataset with attributes: age, sex, education, race, income and marriage status. The program outputs the mean of the incomes and adds Laplacian noise to protects the individuals privacy.</p>
+<p>For each attribute, the program takes a parameter of type array (int or float) with the attribute value for each individual in the dataset. For example, to model a dataset of size 2 where the first individual is 20 and the second is 40, we set the <code class="docutils literal notranslate"><span class="pre">age</span></code> input parameter as <code class="docutils literal notranslate"><span class="pre">age=[20,40]</span></code>. The remaining parameters are defined in the same way. The last parameter <code class="docutils literal notranslate"><span class="pre">N</span></code> indicates the number of records in the dataset.</p>
+<p>This way of defining the input may seem unnatural, but, as we will see below, it allows for a structured manner to specify the prior of the program.</p>
+<p>Furthermore, note that the first lines of <code class="docutils literal notranslate"><span class="pre">dp_program</span></code> simply defined a pandas dataframe. This snippet of code can be adapted to other programs. The part of the code after the comment <code class="docutils literal notranslate"><span class="pre">##</span> <span class="pre">After</span> <span class="pre">here</span> <span class="pre">the...</span></code> can contain arbitrary code working on a pandas dataframe with the attributes defined in the parameters of the program.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="k">def</span> <span class="nf">dp_program</span><span class="p">(</span><span class="n">age</span><span class="p">,</span><span class="n">sex</span><span class="p">,</span><span class="n">educ</span><span class="p">,</span><span class="n">race</span><span class="p">,</span><span class="n">income</span><span class="p">,</span><span class="n">married</span><span class="p">,</span><span class="n">N</span><span class="p">):</span>
+<span></span><span class="k">def</span> <span class="nf">dp_program</span><span class="p">(</span><span class="n">age</span><span class="p">,</span> <span class="n">sex</span><span class="p">,</span> <span class="n">educ</span><span class="p">,</span> <span class="n">race</span><span class="p">,</span> <span class="n">income</span><span class="p">,</span> <span class="n">married</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
     <span class="kn">import</span> <span class="nn">opendp.smartnoise.core</span> <span class="k">as</span> <span class="nn">sn</span>
     <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
-
+    <span class="c1"># assert that all vectors are have the same size</span>
+    <span class="k">assert</span> <span class="n">age</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">sex</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">educ</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">race</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">income</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">married</span><span class="o">.</span><span class="n">size</span>
 
     <span class="c1">## Dataframe definition (can be automatized)</span>
     <span class="n">temp_file</span><span class="o">=</span><span class="s1">&#39;temp.csv&#39;</span>
@@ -412,7 +520,7 @@ WARNING (theano.tensor.blas): Using NumPy C-API based implementation for BLAS fu
         <span class="c1"># load data</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">sn</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">temp_file</span><span class="p">,</span><span class="n">column_names</span><span class="o">=</span><span class="n">var_names</span><span class="p">)</span>
 
-        <span class="c1"># get mean of age</span>
+        <span class="c1"># get mean income with laplacian noise (epsilon=.1 arbitrarily chosen)</span>
         <span class="n">age_mean</span> <span class="o">=</span> <span class="n">sn</span><span class="o">.</span><span class="n">dp_mean</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">sn</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;income&#39;</span><span class="p">]),</span>
                               <span class="n">privacy_usage</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;epsilon&#39;</span><span class="p">:</span> <span class="o">.</span><span class="mi">1</span><span class="p">},</span>
                               <span class="n">data_lower</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="c1"># min income</span>
@@ -424,7 +532,14 @@ WARNING (theano.tensor.blas): Using NumPy C-API based implementation for BLAS fu
 </pre></div>
 </div>
 </div>
-<p>We model an attackers knowledge about the information as probability distributions using the Privugger interface. Privug allows for both discrete and continuous distributions.</p>
+</div>
+<div class="section" id="Input-specification">
+<h2>Input specification<a class="headerlink" href="#Input-specification" title="Permalink to this headline">¶</a></h2>
+<p>The next step is to specify the prior knowledge of the attacker using probability distributions (i.e., they are defined as <em>random variables</em>). In this example, we show specify each of the attributes that conform the dataset.</p>
+<p>The variable <code class="docutils literal notranslate"><span class="pre">N</span></code> defines the size of the dataset (<code class="docutils literal notranslate"><span class="pre">N_rv</span></code> is a point distribution with all probability mass concentrated at <code class="docutils literal notranslate"><span class="pre">N</span></code>, this is necessary because the input specification must be composed by random variables). In this example, we consider a dataset of size 150.</p>
+<p>For non-numeric attributes such as <code class="docutils literal notranslate"><span class="pre">sex</span></code>, <code class="docutils literal notranslate"><span class="pre">educ</span></code> or <code class="docutils literal notranslate"><span class="pre">race</span></code> we use distribution over natural numbers with each number denoting a category. We treat them as nominal values (i.e., we assume there is not order relation, <span class="math notranslate nohighlight">\(\leq\)</span> among them). For these attributes (and <code class="docutils literal notranslate"><span class="pre">married</span></code>) we specify a uniform distribution over all possible categories.</p>
+<p>For <code class="docutils literal notranslate"><span class="pre">age</span></code>, we set a binomial distribution prior with support 0 to 120; this distribution gives highest probability to ages close to 60 years old. We remak here that this prior may be refined by using statistical data about age data.</p>
+<p>Finally, <code class="docutils literal notranslate"><span class="pre">income</span></code> is distributed according to a Normal distribution with mean 100 and standard deviation 5. This gives high probability to values close to 100 (i.e., 100k DKK).</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -432,28 +547,53 @@ WARNING (theano.tensor.blas): Using NumPy C-API based implementation for BLAS fu
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
 <span></span><span class="n">N</span>         <span class="o">=</span> <span class="mi">150</span>
 <span class="n">N_rv</span>      <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
-<span class="n">age</span>       <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+<span class="n">age</span>       <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="s1">&#39;age&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
 <span class="n">sex</span>       <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;sex&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
-<span class="n">educ</span>      <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
-<span class="n">race</span>      <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;race&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
-<span class="n">income</span>    <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;income&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">std</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+<span class="n">educ</span>      <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span> <span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+<span class="n">race</span>      <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;race&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span> <span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+<span class="n">income</span>    <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="s1">&#39;income&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
 <span class="n">married</span>   <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">DiscreteUniform</span><span class="p">(</span><span class="s1">&#39;married&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">num_elements</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="line-block">
-<div class="line">Next we create the two constructs: - dataset - program</div>
-<div class="line">The dataset collects the attackers <em>prior</em> knowledge about the input to the program. The program is a set of a <em>dataset, output type and a program</em>. The output type specifies the output type of the program, in this case it is a floating point number as the program calulates the mean. The function is the program specified above. Lastly we use the privug interface to make inference. This is done by calling <em>infer</em> and specifying the <em>program, number of cores, number of chains, number of draws,
-and the backend which is pymc3 in this example</em></div>
 </div>
-<div class="nbinput docutils container">
+<div class="section" id="Dataset-&amp;-Program-specification">
+<h2>Dataset &amp; Program specification<a class="headerlink" href="#Dataset-&-Program-specification" title="Permalink to this headline">¶</a></h2>
+<p>The input specification above is always wrapped into a <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> object. This object is used as the input for the program.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
-<span></span><span class="n">ds</span>        <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">input_specs</span> <span class="o">=</span> <span class="p">[</span><span class="n">age</span><span class="p">,</span> <span class="n">sex</span><span class="p">,</span> <span class="n">educ</span><span class="p">,</span> <span class="n">race</span><span class="p">,</span> <span class="n">income</span><span class="p">,</span> <span class="n">married</span><span class="p">,</span> <span class="n">N_rv</span><span class="p">])</span>
-<span class="n">program</span>   <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Program</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;differential_privacy&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">Float</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">dp_program</span><span class="p">)</span>
-<span class="n">trace</span>     <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">draws</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;pymc3&#39;</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span></span><span class="n">ds</span>       <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">input_specs</span> <span class="o">=</span> <span class="p">[</span><span class="n">age</span><span class="p">,</span> <span class="n">sex</span><span class="p">,</span> <span class="n">educ</span><span class="p">,</span> <span class="n">race</span><span class="p">,</span> <span class="n">income</span><span class="p">,</span> <span class="n">married</span><span class="p">,</span> <span class="n">N_rv</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Program-specification">
+<h2>Program specification<a class="headerlink" href="#Program-specification" title="Permalink to this headline">¶</a></h2>
+<p>The program specification takes the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> above and the program to analyze. To this end, we define a <code class="docutils literal notranslate"><span class="pre">Program</span></code> object including the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>, a python function corresponding to the program to analyze (the input parameters of the function must match those of the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>). Finally, it is necessary to specify the type of the output of the program. In this case, since we are analyzing a program compute the mean income it is a float. The first parameter of the <code class="docutils literal notranslate"><span class="pre">Program</span></code> constructor
+is the name of the output distribution (i.e., the distribution of the output of the program under analysis).</p>
+<p>output type specifies the output type of the program, in this case it is a floating point number as the program calulates the mean. The function is the program specified above.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">program</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Program</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span><span class="n">dataset</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">Float</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">dp_program</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Inference">
+<h2>Inference<a class="headerlink" href="#Inference" title="Permalink to this headline">¶</a></h2>
+<p>Lastly we use the privug interface to perform the inference. This is done by calling <code class="docutils literal notranslate"><span class="pre">infer</span></code> and specifying the <code class="docutils literal notranslate"><span class="pre">program</span></code>, number of cores, number of chains, number of draws, and the backend (which is pymc3 in this example).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">trace</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">chains</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">draws</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;pymc3&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -492,7 +632,7 @@ CompoundStep
         }
     </style>
   <progress value='42000' class='' max='42000' style='width:300px; height:20px; vertical-align: middle;'></progress>
-  100.00% [42000/42000 02:45<00:00 Sampling 2 chains, 0 divergences]
+  100.00% [42000/42000 02:59<00:00 Sampling 2 chains, 0 divergences]
 </div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -500,43 +640,44 @@ CompoundStep
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-Sampling 2 chains for 1_000 tune and 20_000 draw iterations (2_000 + 40_000 draws total) took 166 seconds.
-/home/rasmuscarl/.local/lib/python3.8/site-packages/xarray/core/nputils.py:215: RuntimeWarning: All-NaN slice encountered
+Sampling 2 chains for 1_000 tune and 20_000 draw iterations (2_000 + 40_000 draws total) took 180 seconds.
+/home/pardo/.local/lib/python3.8/site-packages/arviz/stats/diagnostics.py:561: RuntimeWarning: invalid value encountered in double_scalars
+  (between_chain_variance / within_chain_variance + num_samples - 1) / (num_samples)
+/home/pardo/.local/lib/python3.8/site-packages/xarray/core/nputils.py:227: RuntimeWarning: All-NaN slice encountered
   result = getattr(npmodule, name)(values, axis=axis, **kwargs)
 The rhat statistic is larger than 1.4 for some parameters. The sampler did not converge.
 The estimated number of effective samples is smaller than 200 for some parameters.
 </pre></div></div>
 </div>
-<p>Lastly we can use Privugger to calculate different leakage measures. We do it by using the trace that was produced by the calling infer. In this case we calculate <em>mutual information</em>. Note that the output of the program can be accessed in the trace by refering to ‘output’.</p>
+</div>
+<div class="section" id="Privacy-Risk-Analysis">
+<h2>Privacy Risk Analysis<a class="headerlink" href="#Privacy-Risk-Analysis" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="Mutual-Information">
+<h3>Mutual Information<a class="headerlink" href="#Mutual-Information" title="Permalink to this headline">¶</a></h3>
+<p>To quantify privacy risks, in this tutorial we are using mutual information (though we remark here that privugger can be used to compute many more leakage measures).</p>
+<p>We study the risks for the individual in the first record. We compute the mutual information between the output of the program (mean income + laplace noise) and each of the other attributes in the dataset.</p>
+<p>Since the mutual informaiton estimator we use is not exact, we compute 100 estimates and use box plots to get an impresison of the accuracy of the estimates.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">trace_length</span><span class="o">=</span><span class="mi">20000</span>
+<span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">,</span><span class="s1">&#39;sex&#39;</span><span class="p">,</span><span class="s1">&#39;race&#39;</span><span class="p">,</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span><span class="s1">&#39;married&#39;</span><span class="p">,</span><span class="s1">&#39;income&#39;</span><span class="p">]</span>
 
-<span></span><span class="c1">#NOTE that we should not use this but our own binding in the future</span>
-<span class="kn">from</span> <span class="nn">sklearn.feature_selection</span> <span class="kn">import</span> <span class="n">mutual_info_regression</span>
+<span class="n">trace_attr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">attr</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trace</span><span class="o">.</span><span class="n">posterior</span><span class="p">[</span><span class="n">attr</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+<span class="n">y</span><span class="o">=</span><span class="p">[[</span><span class="n">pv</span><span class="o">.</span><span class="n">mi_sklearn</span><span class="p">([</span><span class="n">trace_attr</span><span class="p">(</span><span class="n">attr</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">trace_attr</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">]],</span>
+                  <span class="n">n_neigh</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span><span class="n">input_inferencedata</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+   <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">)]</span>
 
-<span class="n">trace_length</span><span class="o">=</span><span class="mi">15000</span>
-<span class="n">attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">,</span><span class="s1">&#39;sex&#39;</span><span class="p">,</span><span class="s1">&#39;race&#39;</span><span class="p">,</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span><span class="s1">&#39;married&#39;</span><span class="p">]</span>
-
-<span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="n">mutual_info_regression</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trace</span><span class="o">.</span><span class="n">posterior</span><span class="p">[</span><span class="n">attr</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>
-                          <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trace</span><span class="o">.</span><span class="n">posterior</span><span class="p">[</span><span class="s1">&#39;income&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">,</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-   <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">,</span><span class="s1">&#39;sex&#39;</span><span class="p">,</span><span class="s1">&#39;race&#39;</span><span class="p">,</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span><span class="s1">&#39;married&#39;</span><span class="p">]</span> <span class="p">]</span>
-<span class="c1"># additionally we show the mutual information between the income of the first individual in the dataset and the different attributes</span>
-<span class="n">y1</span><span class="o">=</span><span class="p">[</span><span class="n">mutual_info_regression</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trace</span><span class="o">.</span><span class="n">posterior</span><span class="p">[</span><span class="n">attr</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>
-                          <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trace</span><span class="o">.</span><span class="n">posterior</span><span class="p">[</span><span class="s1">&#39;differential_privacy&#39;</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:</span><span class="n">trace_length</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-   <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;age&#39;</span><span class="p">,</span><span class="s1">&#39;sex&#39;</span><span class="p">,</span><span class="s1">&#39;race&#39;</span><span class="p">,</span><span class="s1">&#39;educ&#39;</span><span class="p">,</span><span class="s1">&#39;married&#39;</span><span class="p">]</span> <span class="p">]</span>
-
-
-<span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;$I(attr;income)$&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span><span class="n">y1</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;$I(attr;differential_privacy)$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">boxplot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">),</span><span class="n">attrs</span><span class="p">,</span>
+            <span class="n">showmeans</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">showfliers</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">patch_artist</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">vert</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">attrs</span><span class="p">)),</span> <span class="n">attrs</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;attr&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$I(income;attr)$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;$I(attr_0;income)$&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Mutual information between income, and other attributes&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">();</span>
 </pre></div>
 </div>
 </div>
@@ -544,40 +685,60 @@ The estimated number of effective samples is smaller than 200 for some parameter
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/tutorials_Open-dp-Tutorial_9_0.png" src="../_images/tutorials_Open-dp-Tutorial_9_0.png" />
+<img alt="../_images/tutorials_Open-dp-Tutorial_13_0.png" src="../_images/tutorials_Open-dp-Tutorial_13_0.png" />
 </div>
 </div>
-</section>
+<p>In the figure above, we observe that the mutual information between the output and any of the attributes is very low <span class="math notranslate nohighlight">\(I(\mathit{attr};\mathit{output})\leq 0.005\)</span> for all attributes (<span class="math notranslate nohighlight">\(\mathit{attr}\)</span>).</p>
+</div>
+</div>
+</div>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="Governor.html" class="btn btn-neutral float-right" title="Governor case study" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="Tutorial.html" class="btn btn-neutral float-left" title="Getting started with privugger" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Governor.html" class="btn btn-neutral float-right" title="Governor tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Raul Pardo, Rasmus Rønneberg, Willard Rafnsson, Andrzej Wasowski &amp; Mathias Jørgensen.</p>
-  </div>
+    <p>
+        &#169; Copyright 2021, Raul Pardo, Rasmus Rønneberg, Willard Rafnsson, Andrzej Wasowski &amp; Mathias Jørgensen.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

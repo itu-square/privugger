@@ -1,11 +1,11 @@
 Privugger Inference
-=====================
+===================
 
 
-privugger method module
+privugger inference module
 ----------------------------------------------
 
-.. automodule:: privugger.inference.method
+.. automodule:: privugger.inference
    :members:
    :undoc-members:
    :show-inheritance:
