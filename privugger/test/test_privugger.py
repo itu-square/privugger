@@ -10,14 +10,19 @@ import numpy as np
 
 
 #It appears that this is the way to do it when on Linux
-sys.path.append(os.path.join(".."))
+#sys.path.append(os.path.join("../.."))
 
 import privugger as pv
 import unittest
 
-class TestProbabilityGenerators(unittest.TestCase):
-    program = "average_age.py"
+program_alpha = "privugger/test/alpha.py"
+program_addition = "privugger/test/addition.py"
+program_multiplication = "privugger/test/multiplication.py"
+program_identity = "privugger/test/identity.py"
+    
 
+class TestProbabilityGenerators(unittest.TestCase):
+    
     def create_file(self, f):
     ## SAVE TO FILE
         res = "".join(inspect.getsourcelines(f)[0])
@@ -40,91 +45,97 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
-        a = pv.Normal(mu=10, std=3.5)
-        b = pv.Normal(mu=40, std=3.5)
+        a = pv.Normal("age", mu=10, std=3.5)
+        b = pv.Normal("height", mu=40, std=3.5)
 
     
         # Create dataset and specify program output
-        ds = pv.Dataset(input_specs = [a,b],
-                        var_names   = ["age", "height"])
+        ds = pv.Dataset(input_specs = [a,b])
 
-        prog = pv.Program(ds, pv.Float, "addition.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_addition)
         #Program
         # self.create_file(lambda a,b: a+b)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
-        for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
-            self.assertEqual(a+b, o)
+        os.remove("typed.py")
+        for a,b, o in zip(trace.posterior["age"].values, trace.posterior["height"].values, trace.posterior["output"].values):
+            for i in range(len(a)): 
+                self.assertEqual(a[i]+b[i], o[i])
         # os.remove("temp.py")
+
 
     def test_multi_samples_correct_order(self):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
-        a = pv.Normal(mu=10, std=3.5)
-        b = pv.Normal(mu=40, std=3.5)
+        a = pv.Normal("age", mu=10, std=3.5)
+        b = pv.Normal("height", mu=40, std=3.5)
 
     
         # Create dataset and specify program output
-        ds = pv.Dataset(input_specs = [a,b],
-                        var_names   = ["age", "height"])
+        ds = pv.Dataset(input_specs = [a,b])
 
         #Program
         # self.create_file(lambda a,b: a*b)
 
-        prog = pv.Program(ds, pv.Float, "multiplication.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_multiplication)
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
-        for a,b, o in zip(trace["age"], trace["height"], trace["output"]):
-            self.assertEqual(a*b, o)
-        # os.remove("temp.py")
+        os.remove("typed.py")
+        for a,b, o in zip(trace.posterior["age"], trace.posterior["height"], trace.posterior["output"]):
+            for i in range(len(a)):
+                self.assertEqual(a[i]*b[i], o[i])
+
 
     def test_uniform_cutoff(self):
         """
         Ensures that when sampling for continuous uniform, no value exceeds domain
         """
-        a = pv.Uniform(10,50)
+        a = pv.Uniform("age", 10,50)
 
     
         # Create dataset and specify program output
-        ds = pv.Dataset(input_specs = [a],
-                        var_names   = ["age"])
+        ds = pv.Dataset(input_specs = [a])
 
-        prog = pv.Program(ds, pv.Float, "identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_identity)
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
-        for ai, oi in zip(trace["age"], trace["output"]):
-            self.assertTrue(50 >= ai >= 10)
-            self.assertTrue(50 >= oi >= 10)
+        os.remove("typed.py")
+        for ai, oi in zip(trace.posterior["age"], trace.posterior["output"]):
+            for i in range(len(ai)):
+                self.assertTrue(50 >= ai[i] >= 10)
+                self.assertTrue(50 >= oi[i] >= 10)
 
     def test_discrete_uniform_cutoff(self):
         """
         Ensures that when sampling for discrete uniform, no value exceeds domain
         """
-        a = pv.DiscreteUniform(10,50)
+        a = pv.DiscreteUniform("age", 10,50)
 
     
         # Create dataset and specify program output
-        ds = pv.Dataset(input_specs = [a],
-                        var_names   = ["age"])
+        ds = pv.Dataset(input_specs = [a])
 
-        prog = pv.Program(ds, pv.Int, "identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Int, function=program_identity)
         #Program
         # self.create_file(lambda a: a)
 
 
         # Call infer
         trace = pv.infer(prog, draws= 1000, cores=1)
-        for ai, oi in zip(trace["age"], trace["output"]):
-            self.assertTrue(50 >= ai >= 10)
-            self.assertTrue(50 >= oi >= 10)
+        os.remove("typed.py")
+        for ai, oi in zip(trace.posterior["age"], trace.posterior["output"]):
+            for i in range(len(ai)):
+                self.assertTrue(50 >= ai[i] >= 10)
+                self.assertTrue(50 >= oi[i] >= 10)
 
+            
     def test_k_samples_gives_k_samples(self):
         """
         Ensures that the number of samples given also corresponds to the number of samples returned
@@ -132,46 +143,46 @@ class TestProbabilityGenerators(unittest.TestCase):
         sample_size = 1000
         
         # Specify distributions
-        age  = pv.Normal(mu=55.2, std=3.5)
+        age  = pv.Normal("age", mu=55.2, std=3.5)
 
         # Create dataset and specify program output
-        ds = pv.Dataset(input_specs = [age],
-                        var_names   = ["age"])
+        ds = pv.Dataset(input_specs = [age])
 
         #Program
-        prog = pv.Program(ds, pv.Float, "identity.py")
+        prog = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_identity)
 
         # Call infer
         trace = pv.infer(prog, draws= sample_size, cores=1, chains=1)
-
-        self.assertEqual(len(trace["age"]), sample_size)
-        self.assertEqual(len(trace["output"]), sample_size)
+        os.remove("typed.py")
+        self.assertEqual(len(trace.posterior["age"][0]), sample_size)
+        self.assertEqual(len(trace.posterior["output"][0]), sample_size)
+        
 
     def test_constraints_greater_than_works(self):
         """
         Ensures that setting a constraint actually limits the trace
         """
-        def alpha(age):
-            return (age.sum()) / (age.size)
+
         # Database size
         N    = 10
         # Specify distributions
-        age  = pv.Normal(mu=55.2, std=3.5, num_elements=N)
+        age  = pv.Normal("age", mu=55.2, std=3.5, num_elements=N)
 
         # Create dataset. Refer to "age_alice" as "age1" in the trace and "age" as "age2" in the trace. This is the general naming convention. 
-        ds   = pv.Dataset(input_specs = [age],
-                        var_names   = ["age"])
+        ds   = pv.Dataset(input_specs = [age])
 
         # For now output type can be: Int, Float, List(Float), List(Int)
-        program = pv.Program(dataset=ds, output_type=pv.Float, function=alpha)
+        program = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_alpha)
 
         # Add observations
         program.add_observation("57>output>56")
 
         # Call infer and specify program output
         trace = pv.infer(program, cores=2, draws=1000)
+        os.remove("typed.py")
 
-        self.assertTrue(all(57 > (np.array(trace["output"] > 56).flatten())))
+        self.assertTrue(all(57 > (np.array(trace.posterior["output"] > 56).flatten())))
+
 
 if __name__ == '__main__':
     unittest.main()
