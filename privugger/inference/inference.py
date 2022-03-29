@@ -157,6 +157,12 @@ def stack(distributions,  type_of_dist, axis=0):
     #return (distributions, (axis, "stack"))
 
 
+def get_model():
+    if (not global_model_set):
+        return None
+    else:
+        return global_model
+
 def sample_prior(model, samples=50):
 
     """
