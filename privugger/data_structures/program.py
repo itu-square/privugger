@@ -74,11 +74,13 @@ class Program:
         ## TODO: Check that the type of the a, b in `a X var X b` match the type of var
         
         
-
-        var_names  = self.dataset._collect_distribution_names()
+        var_names = []
+        ########## OLD CODE ############
+        # var_names  = self.dataset._collect_distribution_names()
         
-        if name.strip() in var_names:
-            name = name.strip()
+        # if name.strip() in var_names:
+        #     name = name.strip()
+        ########## OLD CODE ############
 
         partial1 = lambda x: None
         partial2 = lambda x: None

@@ -1,5 +1,7 @@
 # Privugger: Data Privacy Debugger
 
+Docs and tutorials: https://itu-square.github.io/privugger/
+
 Privugger (/prɪvʌɡə(r)/) is a privacy risk analysis library for python
 programs.  Privugger, takes as input a python program and a
 specification of the adversary's knowledge about the input of the
