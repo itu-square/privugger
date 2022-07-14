@@ -1,0 +1,13 @@
+numpy==1.22.4
+pymc==4.0.1
+hypothesis==6.47.1
+astor==0.8.1
+scipy==1.8.1
+matplotlib==3.5.2
+scikit-learn==1.1.1
+pytest==7.1.2
+portion==2.2.0
+arviz==0.12.1
+jupyter==1.0.0
+aesara==2.7.3
+opendp-smartnoise-core
