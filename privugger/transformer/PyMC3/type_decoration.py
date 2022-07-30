@@ -1,4 +1,6 @@
 import ast
+from platform import node
+from types import DynamicClassAttribute
 import astor
 import sys
 import inspect
@@ -36,16 +38,14 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 return ast_node
         raise TypeError("did not find any Return")
 
-    def simple_method_wrap(self, program, name, args):
+    def simple_method_wrap(self, program, name, args, decorator_list):
         
         arg_identifiers = []
         for a in args.args:
             arg_identifiers.append(a.arg)
-
         #func_returns = self.get_function_return(program.body)
         returns = ast.Return(value=ast.Call(args=[ast.arguments(args=arg_identifiers, defaults=[], vararg=None, kwarg=None)],func=ast.Name(id=name, ctx=ast.Load()), keywords=[]))
-        
-        new_function = ast.Module(body=[ast.FunctionDef(name='method', decorator_list=[], args=args, body=[program, returns])])
+        new_function = ast.Module(body=[ast.FunctionDef(name='method', decorator_list=[decorator_list[0]], args=args, body=[program, returns])])
         return new_function
         #print(astor.to_source(new_function))
         #print(ast.dump(new_function))
@@ -115,17 +115,16 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         
         function_def = self.get_function_def_ast(tree.body)
 
-        node = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
+        decorator_list = self.create_decorated_function(function_def, decorators[0], decorators[1][0])
 
         if(isinstance(tree.body[0], ast.Import)):
             imports = tree.body[0]
-            wrapped_node = self.simple_method_wrap(node, tree.body[1].name, tree.body[1].args)
+            wrapped_node = self.simple_method_wrap(function_def, tree.body[1].name, tree.body[1].args, decorator_list)
             wrapped_node.body.insert(0, imports)
             
-            
         else:
-            wrapped_node = self.simple_method_wrap(node, tree.body[0].name, tree.body[0].args)
-        
+            wrapped_node = self.simple_method_wrap(function_def, tree.body[0].name, tree.body[0].args, decorator_list)
+
         return wrapped_node
 
     
@@ -145,7 +144,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             return 'dscalar'
         
         elif(p_type == 'int'):
-            return 'lscalar'
+            return 'wscalar'
         
         elif(p_type == 'VectorI'):
             return 'lvector'
@@ -254,24 +253,22 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         ielts = []
         oelts = []
         for i in range(number_of_itypes):
-            attr = ast.Attribute(value=ast.Name(id='tt', ctx=ast.Load()), attr=theano_itypes[i], ctx=ast.Load())
+            attr = ast.Attribute(value=ast.Name(id='at', ctx=ast.Load()), attr=theano_itypes[i], ctx=ast.Load())
             ielts.append(attr) 
         
-        oelts.append(ast.Attribute(value=ast.Name(id='tt', ctx=ast.Load()), attr=theano_otype, ctx=ast.Load()))
+        oelts.append(ast.Attribute(value=ast.Name(id='at', ctx=ast.Load()), attr=theano_otype, ctx=ast.Load()))
         
         theano_keywords = [ast.keyword(arg='itypes', value=ast.List(elts=ielts)), ast.keyword(arg='otypes', value=ast.List(elts=oelts))]
 
         theano_decorator_list = [ast.Call(func=ast.Attribute(value=ast.Attribute(
-        value=ast.Attribute(value=ast.Name(id='theano', ctx=ast.Load()), attr='compile', ctx=ast.Load()), attr='ops', ctx=ast.Load()), attr='as_op', ctx=ast.Load()), args=[], keywords=theano_keywords)]
-        
+        value=ast.Attribute(value=ast.Name(id='aesara', ctx=ast.Load()), attr='compile', ctx=ast.Load()), attr='ops', ctx=ast.Load()), attr='as_op', ctx=ast.Load()), args=[], keywords=theano_keywords)]
         #return_body, index = self.find_return_ast(node.body)
         return_list = self.find_return_ast(node.body)
         if(return_list is not None):
             for r in return_list:
                 wrapped_return_body = self.wrap_output_type(r[0].value, otype)
                 node.body[r[1]] = wrapped_return_body
-        node.decorator_list = theano_decorator_list
-        return node 
+        return theano_decorator_list
 
 
     def get_next_annotation(self, arg):
@@ -306,7 +303,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 return (at.Float())
             else:
         
-                raise TyperError("Seems that there is a problem with the annotation")
+                raise TypeError("Seems that there is a problem with the annotation")
 
     def visit_FunctionDef(self, node):
         """
@@ -367,7 +364,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         if(type(out_annotation_type) == at.List):
             if(type(out_annotation_type.a_type) == at.List):
                 if(out_annotation_type.a_type.a_type == at.Int):
-                    outype = TheanoTokoen.int_matrix
+                    outype = TheanoToken.int_matrix
                 else:
                     otype = TheanoToken.float_matrix
             elif(type(out_annotation_type.a_type) == at.Tuple):
@@ -415,22 +412,22 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     
     def wrap_with_theano_import(self, program):
 
-        theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
-        theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
+        aesara_import = ast.Import(names=[ast.alias(name='aesara', asname=None)])
+        aesara_tensor_import = ast.Import(names=[ast.alias(name='aesara.tensor', asname='at')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-        new_program = ast.Module(body=[theano_import, theano_tensor_import,numpy_import,  program])
+        new_program = ast.Module(body=[aesara_import, aesara_tensor_import,numpy_import,  program])
         
         return new_program
 
     def wrap_with_imports(self, program):
-        theano_import = ast.Import(names=[ast.alias(name='theano', asname=None)])
-        theano_tensor_import = ast.Import(names=[ast.alias(name='theano.tensor', asname='tt')])
+        aesara_import = ast.Import(names=[ast.alias(name='aesara', asname=None)])
+        aesara_tensor_import = ast.Import(names=[ast.alias(name='aesara.tensor', asname='at')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
         typing_import = ast.ImportFrom(level=0, module='typing', names=[ast.alias(name='List', asname=None), (ast.alias(name='Tuple', asname=None))])
         functools_import = ast.ImportFrom(level=0, module='functools', names=[ast.alias(name='reduce', asname=None)])
 
 
-        body_with_needed_imports = [theano_import, theano_tensor_import, numpy_import,functools_import, typing_import]+ program.body 
+        body_with_needed_imports = [aesara_import, aesara_tensor_import, numpy_import,functools_import, typing_import]+ program.body 
         program.body = body_with_needed_imports
 
         return program
@@ -552,7 +549,6 @@ def load(path, function):
 
     new_program_with_imports = ftp.wrap_with_imports(new_program_with_outer_function)
     #TheanoImport().visit(new_program_with_outer_function)
-    print(astor.to_source(new_program_with_imports))
 
 
     return new_program_with_imports
