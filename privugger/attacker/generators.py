@@ -1,8 +1,8 @@
 """
 Probability distributions generators
 """
-import pymc3 as pm
-import pymc3.distributions as dist
+import pymc as pm
+import pymc.distributions as dist
 from privugger.attacker.distributions import *
 from hypothesis import strategies as st
 import numpy as np
