@@ -1,4 +1,4 @@
-import pymc3 as pm
+import pymc as pm
 from scipy import stats as st
 from abc import abstractmethod
 """
@@ -17,7 +17,6 @@ class Continuous():
     @abstractmethod
     def get_params(self):
     	return None
-    	
     	
     @abstractmethod
     def scipy_dist(self, name):

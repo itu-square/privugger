@@ -1,6 +1,6 @@
 
 
-import pymc3 as pm
+import pymc as pm
 from scipy import stats as st
 from abc import abstractmethod
 """
@@ -33,7 +33,8 @@ __all__ = [
     "Binomial",
     "DiscreteUniform",
     "Geometric",
-    "Constant"
+    "Constant",
+    "TensorConstant"
 ]
 
 #NOTE the convention is that num_elements -1 means that it is not set 
@@ -340,9 +341,9 @@ class Constant(Discrete):
             hyper_name = hypers[0][1]
             val = hyper_dist.pymc3_dist(hyper_name, [])
         if(self.num_elements==-1):
-            return pm.ConstantDist(name, self.val)
+            return pm.DiracDelta(name, self.val)
         else:
-            return pm.ConstantDist(name, self.val, shape=self.num_elements)
+            return pm.DiracDelta(name, self.val, shape=self.num_elements)
 
     def get_params(self):
         return [self.val]
@@ -350,6 +351,34 @@ class Constant(Discrete):
     def scipy_dist(self, name):
         return lambda siz: np.array([self.val for _ in range(siz)])
 
+class TensorConstant(Discrete):
+
+    """
+    Class for the Constant distribution
+    
+    Attributes 
+    -----------
+    
+    name: String of the name of the random variable
+    
+    val: The constant value 
+    
+    is_hyper_param: Boolean specifying if this RV is used as a hyper parameter. Default: False
+    
+    """
+
+    def __init__(self, name, val, is_hyper_param=False):
+
+        self.val = val
+        self.name = name
+        self.is_hyper_param = is_hyper_param
+
+    def pymc3_dist(self, name, hypers):
+        val = self.val
+        return pm.math.constant(self.val, name)
+
+    def get_params(self):
+        return [self.val]
 
 
 
