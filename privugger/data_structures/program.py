@@ -1,6 +1,6 @@
 from privugger.data_structures.dataset import *
 import re
-import pymc3 as pm
+import pymc as pm
 
 class Program:
 

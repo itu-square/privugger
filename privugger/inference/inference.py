@@ -1,13 +1,14 @@
 
+from sklearn import impute
 from privugger.transformer.PyMC3.type_decoration import *
 from privugger.distributions.continuous import Continuous
-from privugger.distributions.discrete import Discrete, Constant
+from privugger.distributions.discrete import Discrete, Constant, TensorConstant
 from privugger.transformer.PyMC3.theano_types import TheanoToken
 from privugger.transformer.PyMC3.program_output import *
 
 import astor
-import pymc3 as pm
-import theano.tensor as tt
+import pymc as pm
+import aesara.tensor as at
 import arviz as az
 import os
 import importlib
@@ -77,7 +78,7 @@ def _from_distributions_to_theano(input_specs, output):
 
     return (itypes, otype)
 
-def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
+def concatenate(distributions,  type_of_dist, axis=0):
 
     """
     
@@ -108,9 +109,10 @@ def concatenate(distribution_a, distribution_b,  type_of_dist, axis=0):
         global_priors    = []
         global_model_set = True
     with global_model as model:
-        val = pm.math.concatenate( (distribution_a.pymc3_dist(distribution_a.name, []), distribution_b.pymc3_dist(distribution_b.name, [])), axis=axis )
-        global_priors.append(val)
-
+        concatenated_variables = []
+        for i in range(len(distributions)):
+            concatenated_variables.append(distributions[i].pymc3_dist(distributions[i].name, []))
+        global_priors.append(pm.math.concatenate(concatenated_variables, axis=0))
     global concatenated
     concatenated = True
     return type_of_dist
@@ -148,8 +150,8 @@ def stack(distributions,  type_of_dist, axis=0):
     with global_model as model:
         stacked_variables = []
         for i in range(len(distributions)):
-            stacked_variables.append(distributions[i].pymc3_dist(distriutions[i].name, []))
-            global_priors.append(pm.math.stack(stacked_variables, axis=axis))
+            stacked_variables.append(distributions[i].pymc3_dist(distributions[i].name, []))
+        global_priors.append(pm.math.stack(stacked_variables))
 
     global stacked
     stacked = True
@@ -185,7 +187,7 @@ def sample_prior(model, samples=50):
 
         return prior_checks
     
-def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=False):
+def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=False, args_analyse = 3, args = None):
     """
     
     Parameters
@@ -236,16 +238,16 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
         if(program is not  None):
             ftp = FunctionTypeDecorator()
             decorators = _from_distributions_to_theano(input_specs, output)
-            
             lifted_program = ftp.lift(program, decorators)
             lifted_program_w_import = ftp.wrap_with_theano_import(lifted_program)
-        
-            #print(astor.to_source(lifted_program_w_import))
-        
+                
             f = open("typed.py", "w")
             f.write(astor.to_source(lifted_program_w_import))
             f.close()
-            import typed as t 
+        
+                
+            
+            import typed as t
             importlib.reload(t)
             
             #################
@@ -259,11 +261,9 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                 
                 for idx in range(num_specs):
                     prior = input_specs[idx]
-
                     #This is for the case when our prior comes from a concatenated/stacked distribution
                     if(isinstance(prior, str)):
                         continue
-                  
                     if(prior.is_hyper_param):
                         hyper_params.append((prior, prior.name))
                     else:
@@ -277,12 +277,10 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                                         hypers_for_prior.append((hyper[0],hyper[1], p_idx))
                             
                         #priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
-                        global_priors.append(prior.pymc3_dist(prior.name, hypers_for_prior))
-                
+                        global_priors.insert(idx, prior.pymc3_dist(prior.name, hypers_for_prior))
                 if(program is not None):
                     #output = pm.Deterministic("output", t.method(*priors) )
-                    output = pm.Deterministic(prog.name, t.method(*global_priors) )
-
+                    output = pm.Deterministic(prog.name, t.method(*global_priors))
                 # Add observations
                 prog.execute_observations(prior, output)
 
@@ -320,7 +318,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
         priors = []
         trace = {}
         for idx in range(num_specs):
-            name, dist = input_specs[idx].scipy_dist(input_sepcs[idx].name)
+            name, dist = input_specs[idx].scipy_dist(input_specs[idx].name)
             dist = dist(draws)
             priors.append(dist)
             trace[name] = dist

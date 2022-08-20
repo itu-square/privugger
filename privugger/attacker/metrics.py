@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import mutual_info_regression
 import numpy as np
-import pymc3 as pm
+import pymc as pm
 import scipy.stats as st
 import pickle 
 import datetime
