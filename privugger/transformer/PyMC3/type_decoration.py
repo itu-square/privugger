@@ -107,6 +107,9 @@ class FunctionTypeDecorator(ast.NodeTransformer):
                 file.write(res)
             tree = ast.parse(open("temp.py").read())
 
+            #first_deterministic = ast.Expr(value=ast.Call(func=ast.Attribute(value=ast.Name(id='pm', ctx=ast.Load()), attr='Deterministic', ctx=ast.Load()), args=[ast.Constant(value='rd_countries'), ast.Name(id='rd_countries', ctx=ast.Load())], keywords=[]))
+            #tree.body[0].body.insert(6, first_deterministic)
+
             os.remove("temp.py")
         
         #if("lambda")
@@ -144,7 +147,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             return 'dscalar'
         
         elif(p_type == 'int'):
-            return 'wscalar'
+            return 'lscalar'
         
         elif(p_type == 'VectorI'):
             return 'lvector'
@@ -415,7 +418,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         aesara_import = ast.Import(names=[ast.alias(name='aesara', asname=None)])
         aesara_tensor_import = ast.Import(names=[ast.alias(name='aesara.tensor', asname='at')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-        new_program = ast.Module(body=[aesara_import, aesara_tensor_import,numpy_import,  program])
+        new_program = ast.Module(body=[aesara_import, aesara_tensor_import, numpy_import, program])
         
         return new_program
 

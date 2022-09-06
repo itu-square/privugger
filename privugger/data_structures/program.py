@@ -21,6 +21,13 @@ class Program:
             self.program              = function
             self.observation          = None
             self.execute_observations = lambda a,b: None
+        elif dataset is None:
+            self.dataset              = None
+            self.output_type          = output_type
+            self.name                 = name
+            self.program              = function
+            self.observation          = None
+            self.execute_observations = lambda a,b: None
         else:
             raise ValueError("The dataset has to be of type privugger.Dataset")
 
@@ -84,28 +91,25 @@ class Program:
 
         partial1 = lambda x: None
         partial2 = lambda x: None
-        if name in var_names or "output" in name:
-            if val1 != "" and cons1 != "":
-                v1 = float(val1) if "." in val1 else int(val1)
-                partial1 = self._unwrap_constrain(v1, cons1, precision)
-                print(partial1)
-                
-            if val2 != "" and cons2 != "":
-                v2 = float(val2) if "." in val2 else int(val2)
-                partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
-        
-            def inner(prior, output):
-                if name in var_names:
-                    idx = var_names.index(name)
-                    distribution = prior[idx]
-                else:
-                    distribution = output
-                partial1(distribution)
-                partial2(distribution)
-            self.execute_observations = inner
-            return None # to avoid having a return value
-        else:
-            raise ValueError("Observation was not known. Make sure that the name is part of the names in privugger.Datastructure")
+        if val1 != "" and cons1 != "":
+            v1 = float(val1) if "." in val1 else int(val1)
+            partial1 = self._unwrap_constrain(v1, cons1, precision)
+            print(partial1)
+            
+        if val2 != "" and cons2 != "":
+            v2 = float(val2) if "." in val2 else int(val2)
+            partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
+    
+        def inner(prior, output):
+            if name in var_names:
+                idx = var_names.index(name)
+                distribution = prior[idx]
+            else:
+                distribution = output
+            partial1(distribution)
+            partial2(distribution)
+        self.execute_observations = inner
+        return None # to avoid having a return value
 
 
     def _unwrap_constrain(self, value, cons, precision, i=0):

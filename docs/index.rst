@@ -25,6 +25,7 @@ Furthermore, Privugger is equipped with a module to perform *automatic attacker 
    tutorials/Tutorial.ipynb
    tutorials/Open-dp-Tutorial.ipynb
    tutorials/Governor.ipynb
+   tutorials/Duplicate.ipynb
 
 
 .. toctree::
