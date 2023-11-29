@@ -1,4 +1,5 @@
 from privugger.data_structures.dataset import *
+import numpy as np
 import re
 import pymc as pm
 
@@ -32,11 +33,13 @@ class Program:
         are of type Float, `var` is a string corresponding to one of
         the variables in the program or its output, and X \in
         {<,>,=<,>=,==}.
+
+        We also allow `b` to be a vector of integers.
         
-        Examples: 
+        Examples:
           - 10 > output > 5
           - 52.5 < output
-          - output == 42.5 
+          - output == 42.5
 
         Parameters
         ------------
@@ -50,11 +53,14 @@ class Program:
             probability required for the condition to hold.
 
         """
-        cons = "[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]*)[-+]?([0-9]*\.[0-9]+|[0-9]+)*"
+
+        cons = "[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]{2,})[-+]?([0-9]*\.[0-9]+|[0-9]+|\[(\d*,?)*\])*"
+        # cons = "[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]*)[-+]?([0-9]*\.[0-9]+|[0-9]+)*"        
         constraints = constraints.replace(" ", "")
         vals = re.search(cons, constraints)
 
-        # val1 cons1 name cons2 val2
+
+        # Syntax: val1 cons1 name cons2 val2
         # 10 > output >= 2
         val1 = vals.group(1)
         cons1 = vals.group(2)
@@ -63,6 +69,7 @@ class Program:
         val2 = vals.group(5)
 
         # DEBUGGING
+        # print(vals.groups())
         # print("val1: " + str(val1) + " cons1: " + str(cons1) + " name: " + str(name) + " cons2: " + str(cons2) + " val2: " + str(val2))
 
         # Well-formedness checks
@@ -70,6 +77,7 @@ class Program:
         ## Check whether we have something of the type `a X var X`
         if val2 == None and cons2 != "":
             raise ValueError("Malformed observation: please review the observation to ensure that the syntax is correct.")
+
 
         ## TODO: Check that the type of the a, b in `a X var X b` match the type of var
         
@@ -89,11 +97,17 @@ class Program:
                 v1 = float(val1) if "." in val1 else int(val1)
                 partial1 = self._unwrap_constrain(v1, cons1, precision)
                 print(partial1)
-                
-            if val2 != "" and cons2 != "":
+
+            # TODO: Allow for float arrays
+            if val2[0] == "[" and cons2 == "==":
+                print('observation on vector')
+                v2 = np.array([int(v) for v in val2[1:-1].split(',')])
+                partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
+
+            if val2 != "" and val2[0] != "[" and cons2 != "":
                 v2 = float(val2) if "." in val2 else int(val2)
                 partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
-        
+
             def inner(prior, output):
                 if name in var_names:
                     idx = var_names.index(name)
