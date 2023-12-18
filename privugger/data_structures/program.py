@@ -100,7 +100,7 @@ class Program:
 
             # TODO: Allow for float arrays
             if val2[0] == "[" and cons2 == "==":
-                print('observation on vector')
+                # print('observation on vector') # DEBUGGING
                 v2 = np.array([int(v) for v in val2[1:-1].split(',')])
                 partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
 
