@@ -10,3 +10,4 @@ privugger.egg-info/
 *.pdf
 *.priv
 *.png
+myenv/

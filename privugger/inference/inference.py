@@ -8,7 +8,7 @@ from privugger.transformer.PyMC3.program_output import *
 
 import astor
 import pymc as pm
-import aesara.tensor as at
+import pytensor.tensor as at
 import arviz as az
 import os
 import importlib
