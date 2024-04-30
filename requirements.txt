@@ -1,7 +1,7 @@
-scikit-learn==1.1.2
-pymc==4.1.5
-hypothesis==5.35.3
 astor==0.8.1
-pytest==6.2.5
-portion==2.2.0
+hypothesis==5.35.3
 opendp==0.4.0
+portion==2.4.2
+pymc==4.1.5
+pytest==8.1.1
+scikit_learn==1.4.2

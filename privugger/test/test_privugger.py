@@ -9,8 +9,8 @@ import numpy as np
 #sys.path.insert(0, parentdir)
 
 
-#It appears that this is the way to do it when on Linux
-#sys.path.append(os.path.join("../.."))
+# It appears that this is the way to do it when on Linux
+sys.path.append(os.path.join("../.."))
 
 import privugger as pv
 import unittest

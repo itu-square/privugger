@@ -3,6 +3,9 @@ __pycache__/
 .hypothesis/
 .ipynb_checkpoints/
 .vscode/
+build/
+dist/
+privugger.egg-info/
 *.html
 *.pdf
 *.priv
