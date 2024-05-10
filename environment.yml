@@ -1,0 +1,22 @@
+---
+name: privugger
+channels:
+  - default
+  - conda-forge
+dependencies:
+  - arviz==0.16.1
+  - jupyter==1.0.0
+  - jupyterlab==4.0.9
+  - pandas==2.1.4
+  - pip
+  - pooch==1.7.0
+  - seaborn
+  - statsmodels
+  - tabulate
+  - watermark
+  - matplotlib==3.8.2
+  - xarray==2023.6.0
+  - pip:
+      - -r requirements.txt
+variables:
+  PYTHONNOUSERSITE: '1'

@@ -261,7 +261,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         theano_keywords = [ast.keyword(arg='itypes', value=ast.List(elts=ielts)), ast.keyword(arg='otypes', value=ast.List(elts=oelts))]
 
         theano_decorator_list = [ast.Call(func=ast.Attribute(value=ast.Attribute(
-        value=ast.Attribute(value=ast.Name(id='aesara', ctx=ast.Load()), attr='compile', ctx=ast.Load()), attr='ops', ctx=ast.Load()), attr='as_op', ctx=ast.Load()), args=[], keywords=theano_keywords)]
+        value=ast.Attribute(value=ast.Name(id='pytensor', ctx=ast.Load()), attr='compile', ctx=ast.Load()), attr='ops', ctx=ast.Load()), attr='as_op', ctx=ast.Load()), args=[], keywords=theano_keywords)]
         #return_body, index = self.find_return_ast(node.body)
         return_list = self.find_return_ast(node.body)
         if(return_list is not None):
@@ -412,22 +412,22 @@ class FunctionTypeDecorator(ast.NodeTransformer):
     
     def wrap_with_theano_import(self, program):
 
-        aesara_import = ast.Import(names=[ast.alias(name='aesara', asname=None)])
-        aesara_tensor_import = ast.Import(names=[ast.alias(name='aesara.tensor', asname='at')])
+        pytensor_import = ast.Import(names=[ast.alias(name='pytensor', asname=None)])
+        pytensor_tensor_import = ast.Import(names=[ast.alias(name='pytensor.tensor', asname='at')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
-        new_program = ast.Module(body=[aesara_import, aesara_tensor_import,numpy_import,  program])
+        new_program = ast.Module(body=[pytensor_import, pytensor_tensor_import,numpy_import,  program])
         
         return new_program
 
     def wrap_with_imports(self, program):
-        aesara_import = ast.Import(names=[ast.alias(name='aesara', asname=None)])
-        aesara_tensor_import = ast.Import(names=[ast.alias(name='aesara.tensor', asname='at')])
+        pytensor_import = ast.Import(names=[ast.alias(name='pytensor', asname=None)])
+        pytensor_tensor_import = ast.Import(names=[ast.alias(name='pytensor.tensor', asname='at')])
         numpy_import = ast.Import(names=[ast.alias(name='numpy', asname='np')])
         typing_import = ast.ImportFrom(level=0, module='typing', names=[ast.alias(name='List', asname=None), (ast.alias(name='Tuple', asname=None))])
         functools_import = ast.ImportFrom(level=0, module='functools', names=[ast.alias(name='reduce', asname=None)])
 
 
-        body_with_needed_imports = [aesara_import, aesara_tensor_import, numpy_import,functools_import, typing_import]+ program.body 
+        body_with_needed_imports = [pytensor_import, pytensor_tensor_import, numpy_import,functools_import, typing_import]+ program.body 
         program.body = body_with_needed_imports
 
         return program
