@@ -175,7 +175,7 @@ class TestProbabilityGenerators(unittest.TestCase):
         program = pv.Program("output", dataset=ds, output_type=pv.Float, function=program_alpha)
 
         # Add observations
-        program.add_observation("57>output>56")
+        program.add_observation("57>=output>=56")
 
         # Call infer and specify program output
         trace = pv.infer(program, cores=2, draws=1000)
