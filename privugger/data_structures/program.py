@@ -31,7 +31,7 @@ class Program:
 
         `a X var` or `a X var X b` where a,b are of type Int or a,b,c
         are of type Float, `var` is a string corresponding to one of
-        the variables in the program or its output, and X \in
+        the variables in the program or its output, and X in
         {<,>,=<,>=,==}.
 
         We also allow `b` to be a vector of integers.
@@ -54,7 +54,7 @@ class Program:
 
         """
 
-        cons = "[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]{2,})[-+]?([0-9]*\.[0-9]+|[0-9]+|\[(\d*,?)*\])*"
+        cons = r"[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]{2,})[-+]?([0-9]*\.[0-9]+|[0-9]+|\[(\d*,?)*\])*"
         # cons = "[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]*)[-+]?([0-9]*\.[0-9]+|[0-9]+)*"        
         constraints = constraints.replace(" ", "")
         vals = re.search(cons, constraints)

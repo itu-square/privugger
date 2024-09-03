@@ -311,9 +311,9 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
             f = open(program, "r")
             new = open("typed.py", "w")
             for l in f.readlines():
-                res = re.findall("def [a-zA-Z]+\(", l)
+                res = re.findall(r"def [a-zA-Z]+\(", l)
                 if len(res):
-                    new.write(re.sub("def [a-zA-Z]+\(", "def method(", l))
+                    new.write(re.sub(r"def [a-zA-Z]+\(", "def method(", l))
                 else:
                     new.write(l)
             f.close()
