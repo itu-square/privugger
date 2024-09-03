@@ -13,3 +13,4 @@ privugger.egg-info/
 myenv/
 docs/tutorials/typed.py
 docs/tutorials/temp.csv
+/typed.py
