@@ -11,3 +11,5 @@ privugger.egg-info/
 *.priv
 *.png
 myenv/
+docs/tutorials/typed.py
+docs/tutorials/temp.csv
