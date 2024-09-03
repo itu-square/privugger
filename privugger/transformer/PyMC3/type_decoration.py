@@ -144,7 +144,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             return 'dscalar'
         
         elif(p_type == 'int'):
-            return 'wscalar'
+            return 'lscalar'
         
         elif(p_type == 'VectorI'):
             return 'lvector'
