@@ -18,10 +18,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.12
-    - name: Install dependencies
+    - name: Install dependencies for privugger
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Test with pytest
+    - name: Execute privugger tests with pytest
       run: |
         python3 -m pytest privugger
