@@ -45,6 +45,8 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
+        pv.reset()
+
         a = pv.Normal("age", mu=10, std=3.5)
         b = pv.Normal("height", mu=40, std=3.5)
 
@@ -70,6 +72,8 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for distribution A and B then output is made of [(a_0,b_0), ..., (a_i, b_i)]
         """
+        pv.reset()
+
         a = pv.Normal("age", mu=10, std=3.5)
         b = pv.Normal("height", mu=40, std=3.5)
 
@@ -93,6 +97,8 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for continuous uniform, no value exceeds domain
         """
+        pv.reset()
+
         a = pv.Uniform("age", 10,50)
 
     
@@ -116,6 +122,8 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that when sampling for discrete uniform, no value exceeds domain
         """
+        pv.reset()
+
         a = pv.DiscreteUniform("age", 10,50)
 
     
@@ -140,6 +148,7 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that the number of samples given also corresponds to the number of samples returned
         """
+        pv.reset()
         sample_size = 1000
         
         # Specify distributions
@@ -162,6 +171,7 @@ class TestProbabilityGenerators(unittest.TestCase):
         """
         Ensures that setting a constraint actually limits the trace
         """
+        pv.reset()
 
         # Database size
         N    = 10

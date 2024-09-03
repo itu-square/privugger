@@ -22,6 +22,14 @@ concatenated     = False
 stacked          = False
 global_model_set = False
 
+def reset():
+    global global_model, global_priors, concatenated, stacked, global_model_set
+    global_model  = None
+    global_priors = []
+    concatenated     = False
+    stacked          = False
+    global_model_set = False
+
 def _from_distributions_to_theano(input_specs, output):
     
     itypes = []
@@ -331,6 +339,3 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
         return az.convert_to_inference_data(trace)
     else:
         raise TypeError("Unsupported probabilistic framework")
-
-
-    
