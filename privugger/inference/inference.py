@@ -195,7 +195,7 @@ def sample_prior(model, samples=50):
 
         return prior_checks
     
-def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=False, args_analyse = 3, args = None):
+def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=False, initvals = None, args_analyse = 3, args = None):
     """
     
     Parameters
@@ -295,7 +295,7 @@ def infer(prog, cores=2 , chains=2, draws=500, method="pymc3", return_model=Fals
                 if(return_model):
                     return global_model
                 else:
-                    trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True)
+                    trace = pm.sample(draws=draws, chains=chains, cores=cores,return_inferencedata=True, initvals=initvals)
 
                 concatenated     = False
                 stacked          = False

@@ -52,6 +52,9 @@ class Program:
             probability 1. The larger the value the lower the
             probability required for the condition to hold.
 
+            When precision is set to 0, the likelihood is modeled with a Dirac delta.
+            When precision is larger than 0, then precision becomes the standard deviation of a Normal likelihood
+
         """
 
         cons = r"[-+]?([0-9]*\.[0-9]+|[0-9]+)*([>=<]*)([a-zA-Z\s]*)([>=<]{2,})[-+]?([0-9]*\.[0-9]+|[0-9]+|\[(\d*,?)*\])*"
@@ -123,19 +126,31 @@ class Program:
 
 
     def _unwrap_constrain(self, value, cons, precision, i=0):
+
+        def pick_likelihood(name, mean_value, precision, observed_values):
+            if precision == 0:
+                return pm.DiracDelta(name, mean_value, observed=observed_values)
+            elif precision > 0:
+                return pm.Normal(name, mean_value, precision, observed=observed_values)
+
         if not i % 2:
             cons = cons.replace(">", "<")
         def inner(distribution):
             if cons == ">":
-                pm.Normal(f"cons_{i}", distribution>value,  precision, observed=1)
+                # pm.Normal(f"cons_{i}", distribution>value,  precision, observed=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=(distribution>value),  precision=precision, observed_values=1)
             elif cons == ">=":
-                pm.Normal(f"cons_{i}", distribution>=value, precision, observed=1)
+                # pm.Normal(f"cons_{i}", distribution>=value, precision, observed=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=(distribution>=value),  precision=precision, observed_values=1)
             elif cons == "<":
-                pm.Normal(f"cons_{i}", distribution<value,  precision, observed=1)
+                # pm.Normal(f"cons_{i}", distribution<value,  precision, observed=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=(distribution<value),  precision=precision, observed_values=1)
             elif cons == "<=":
-                pm.Normal(f"cons_{i}", distribution<=value, precision, observed=1)
+                # pm.Normal(f"cons_{i}", distribution<=value, precision, observed=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=(distribution<=value),  precision=precision, observed_values=1)
             elif cons == "==":
-                pm.Normal(f"cons_{i}", distribution,        precision, observed=value)
+                # pm.Normal(f"cons_{i}", distribution,        precision, observed=value)
+                pick_likelihood(name=f"cons_{i}", mean_value=distribution,  precision=precision, observed_values=value)
             else:
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner

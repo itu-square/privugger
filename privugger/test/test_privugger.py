@@ -192,6 +192,42 @@ class TestProbabilityGenerators(unittest.TestCase):
         os.remove("typed.py")
 
         self.assertTrue(all(57 > (np.array(trace.posterior["output"] > 56).flatten())))
+    
+
+    def test_hard_constraint_equality(self):
+        """
+        Ensures that hard constraints imposing an equality is respected
+
+        The model is not very meaningful as the probability of the provided 
+        single output is 0, but it correctly checks the required property        
+        
+        """
+        program_sum = lambda x: np.array(x.sum())  ## TODO: I am not sure why we have to return an array here, 
+                                                   ## but otherwise I get a type error in the inference
+
+        pv.reset()
+
+        # Database size
+        N    = 10
+
+        # Specify distributions
+        age  = pv.Binomial("age", p=0.5, n=100, num_elements=N)
+
+        # Create dataset. Refer to "age_alice" as "age1" in the trace and "age" as "age2" in the trace. This is the general naming convention. 
+        ds   = pv.Dataset(input_specs = [age])
+
+        # For now output type can be: Int, Float, List(Float), List(Int)
+        program = pv.Program("output", dataset=ds, output_type=pv.Int, function=program_sum)
+
+        # Add observations
+        observed_output = 500
+        program.add_observation(f"output=={observed_output}", precision=0)
+
+        # Call infer and specify program output
+        trace = pv.infer(program, cores=2, draws=1000, initvals={'age': [50,50,50,50,50,50,50,50,50,50]})
+        os.remove("typed.py")
+
+        self.assertTrue((trace.posterior['output'].values == 500).all())
 
 
 if __name__ == '__main__':
