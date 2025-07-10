@@ -218,7 +218,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
             if(out_type == 'int'):
                 o_attr = 'int64'
             elif(out_type == 'float'):
-                o_attr = 'float32'
+                o_attr = 'float64'
             elif(out_type=='VectorI' or out_type == 'VectorF' or out_type == 'MatrixF' or 'MatrixI' or 'MatrixD'):
                 o_attr = 'array'
             return ast.Return(ast.Call(func=ast.Attribute(value=ast.Name(id='np', ctx=ast.Load()),attr=o_attr, ctx=ast.Load()), args=[out_body],keywords=[]))
@@ -364,7 +364,7 @@ class FunctionTypeDecorator(ast.NodeTransformer):
         if(type(out_annotation_type) == at.List):
             if(type(out_annotation_type.a_type) == at.List):
                 if(out_annotation_type.a_type.a_type == at.Int):
-                    outype = TheanoToken.int_matrix
+                    otype = TheanoToken.int_matrix
                 else:
                     otype = TheanoToken.float_matrix
             elif(type(out_annotation_type.a_type) == at.Tuple):

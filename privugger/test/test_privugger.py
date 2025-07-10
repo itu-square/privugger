@@ -19,6 +19,7 @@ program_alpha = "privugger/test/alpha.py"
 program_addition = "privugger/test/addition.py"
 program_multiplication = "privugger/test/multiplication.py"
 program_identity = "privugger/test/identity.py"
+program_sum = "privugger/test/sum.py"
     
 
 class TestProbabilityGenerators(unittest.TestCase):
@@ -202,9 +203,6 @@ class TestProbabilityGenerators(unittest.TestCase):
         single output is 0, but it correctly checks the required property        
         
         """
-        program_sum = lambda x: np.array(x.sum())  ## TODO: I am not sure why we have to return an array here, 
-                                                   ## but otherwise I get a type error in the inference
-
         pv.reset()
 
         # Database size
@@ -224,10 +222,11 @@ class TestProbabilityGenerators(unittest.TestCase):
         program.add_observation(f"output=={observed_output}", precision=0)
 
         # Call infer and specify program output
-        trace = pv.infer(program, cores=2, draws=1000, initvals={'age': [50,50,50,50,50,50,50,50,50,50]})
+        trace = pv.infer(program, cores=2, draws=1000, 
+                         initvals={'age': [50,50,50,50,50,50,50,50,50,50]})
         os.remove("typed.py")
 
-        self.assertTrue((trace.posterior['output'].values == 500).all())
+        self.assertTrue((trace.posterior['output'].values == observed_output).all())
 
 
 if __name__ == '__main__':

@@ -97,19 +97,21 @@ class Program:
         partial2 = lambda x: None
         if name in var_names or "output" in name:
             if val1 != "" and cons1 != "":
-                v1 = float(val1) if "." in val1 else int(val1)
+                v1 = np.float64(val1) if "." in val1 else np.int64(val1)
                 partial1 = self._unwrap_constrain(v1, cons1, precision)
-                print(partial1)
+                # print(partial1)
 
             # TODO: Allow for float arrays
             if val2[0] == "[" and cons2 == "==":
                 # print('observation on vector') # DEBUGGING
-                v2 = np.array([int(v) for v in val2[1:-1].split(',')])
+                v2 = np.array([np.int64(v) for v in val2[1:-1].split(',')])
                 partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
 
+
             if val2 != "" and val2[0] != "[" and cons2 != "":
-                v2 = float(val2) if "." in val2 else int(val2)
+                v2 = np.float64(val2) if "." in val2 else np.int64(val2)
                 partial2 = self._unwrap_constrain(v2, cons2, precision, i=1)
+
 
             def inner(prior, output):
                 if name in var_names:
@@ -137,20 +139,15 @@ class Program:
             cons = cons.replace(">", "<")
         def inner(distribution):
             if cons == ">":
-                # pm.Normal(f"cons_{i}", distribution>value,  precision, observed=1)
-                pick_likelihood(name=f"cons_{i}", mean_value=(distribution>value),  precision=precision, observed_values=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=pm.math.gt(distribution, value),  precision=precision, observed_values=1)
             elif cons == ">=":
-                # pm.Normal(f"cons_{i}", distribution>=value, precision, observed=1)
-                pick_likelihood(name=f"cons_{i}", mean_value=(distribution>=value),  precision=precision, observed_values=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=pm.math.ge(distribution, value),  precision=precision, observed_values=1)
             elif cons == "<":
-                # pm.Normal(f"cons_{i}", distribution<value,  precision, observed=1)
-                pick_likelihood(name=f"cons_{i}", mean_value=(distribution<value),  precision=precision, observed_values=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=pm.math.lt(distribution, value),  precision=precision, observed_values=1)
             elif cons == "<=":
-                # pm.Normal(f"cons_{i}", distribution<=value, precision, observed=1)
-                pick_likelihood(name=f"cons_{i}", mean_value=(distribution<=value),  precision=precision, observed_values=1)
+                pick_likelihood(name=f"cons_{i}", mean_value=pm.math.le(distribution, value),  precision=precision, observed_values=1)
             elif cons == "==":
-                # pm.Normal(f"cons_{i}", distribution,        precision, observed=value)
-                pick_likelihood(name=f"cons_{i}", mean_value=distribution,  precision=precision, observed_values=value)
+                pick_likelihood(name=f"cons_{i}", mean_value=distribution, precision=precision, observed_values=value)
             else:
                 raise ValueError(f"The program does not support {cons} as a constrain")
         return inner
