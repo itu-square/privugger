@@ -3,6 +3,7 @@
 import pymc as pm
 from scipy import stats as st
 from abc import abstractmethod
+import numpy as np
 """
 By specifying our own interface for distributions we could ideally hide which specific backend is used to model the distributions
 
