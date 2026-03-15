@@ -1,5 +1,0 @@
-origin: git@github.com:itu-square/privugger.git
-backup_mirrors:
-- git@bitbucket.org:itu-square/privugger-mirror.git
-- gitolite@dukla.ch:privugger
-- gitolite@localhost:privugger
